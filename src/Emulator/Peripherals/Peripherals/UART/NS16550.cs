@@ -58,6 +58,7 @@ namespace Antmicro.Renode.Peripherals.UART
 
         public void WriteByte(long offset, byte value)
         {
+            this.Log(LogLevel.Info, "WriteByte");
             var originalOffset = offset;
             if(mode32 && ((offset % 4) == 0))
             {
@@ -87,6 +88,7 @@ namespace Antmicro.Renode.Peripherals.UART
                 {
                 case Register.Data:
                     var handler = CharReceived;
+                    this.Log(LogLevel.Info, "Char sent");
                     if(handler != null)
                     {
                         handler((byte)(value & 0xFF));
@@ -110,6 +112,7 @@ namespace Antmicro.Renode.Peripherals.UART
                     break;
 
                 case Register.InterruptEnable:
+                    this.Log(LogLevel.Info, "NS16550 Interrupt register accessed {0}", value);
                     interruptEnable = (InterruptEnableLevel)value;
                     if((fifoControl & FifoControl.IsEnabled) != 0 && (interruptEnable & InterruptEnableLevel.ProgrammableTransmitHoldEmptyInterruptMode) != 0)
                     {
@@ -218,6 +221,7 @@ namespace Antmicro.Renode.Peripherals.UART
 
         public byte ReadByte(long offset)
         {
+            this.Log(LogLevel.Info, "ReadByte");
             var originalOffset = offset;
             if(mode32 && ((offset % 4) == 0))
             {
@@ -410,12 +414,14 @@ namespace Antmicro.Renode.Peripherals.UART
 
             if(interruptId != InterruptLevel.NoInterruptsPending)
             {
-                this.NoisyLog("IRQ true");
+                // this.NoisyLog("IRQ true");
+                this.Log(LogLevel.Info, "IRQ true {0}, {1}, {2}", interruptId, InterruptLevel.NoInterruptsPending, interruptEnable);
                 IRQ.Set(true);
             }
             else
             {
-                this.NoisyLog("IRQ false");
+                // this.NoisyLog("IRQ false");
+                this.Log(LogLevel.Info, "IRQ false {0}, {1}, {2}", interruptId, InterruptLevel.NoInterruptsPending, interruptEnable);
                 IRQ.Set(false);
             }
         }
@@ -456,28 +462,47 @@ namespace Antmicro.Renode.Peripherals.UART
             Data = 0x00,
             DivisorLatchL = 0x00,
             // the same as Data but accessible only when DLAB bit is set
-            InterruptEnable = 0x01,
-            DivisorLatchH = 0x01,
+            //InterruptEnable = 0x01,
+            InterruptEnable = 0x04,
+            //DivisorLatchH = 0x01,
+            DivisorLatchH = 0x04,
             // the same as Interrupt enabel but accessible only when DLAB bit is set
-            InterruptIdentification = 0x02,
-            FIFOControl = 0x02,
-            LineControl = 0x03,
-            ModemControl = 0x04,
-            LineStatus = 0x05,
-            PrescalerDivision = 0x05,
+            //InterruptIdentification = 0x02,
+            InterruptIdentification = 0x08,
+            //FIFOControl = 0x02,
+            FIFOControl = 0x08,
+            //LineControl = 0x03,
+            LineControl = 0x0c,
+            //ModemControl = 0x04,
+            ModemControl = 0x10,
+            //LineStatus = 0x05,
+            LineStatus = 0x14,
+            //PrescalerDivision = 0x05,
+            PrescalerDivision = 0x14,
             // the same as Line Status but accessible only when DLAB bit is set
-            LineStatusHack = 0x14,
-            ModemStatusRegister = 0x06,
-            TriggerLevelScratchpad = 0x07,
+            //LineStatusHack = 0x14,
+            LineStatusHack = 0x50,
+            //ModemStatusRegister = 0x06,
+            ModemStatusRegister = 0x18,
+            //TriggerLevelScratchpad = 0x07,
+            TriggerLevelScratchpad = 0x1c,
 
-            MultiModeInterruptEnable = 0x09,
-            MultiModeControl0 = 0x0C,
-            MultiModeControl1 = 0x0D,
-            MultiModeControl2 = 0x0E,
-            FractionalDivisor = 0x0F,
-            GlitchFilter = 0x11,
-            TransmitterTimeGuard = 0x12,
-            ReceiverTimeOut = 0x13
+            //MultiModeInterruptEnable = 0x09,
+            MultiModeInterruptEnable = 0x24,
+            //MultiModeControl0 = 0x0C,
+            MultiModeControl0 = 0x30,
+            //MultiModeControl1 = 0x0D,
+            MultiModeControl1 = 0x34,
+            //MultiModeControl2 = 0x0E,
+            MultiModeControl2 = 0x38,
+            //FractionalDivisor = 0x0F,
+            FractionalDivisor = 0x3C,
+            //GlitchFilter = 0x11,
+            GlitchFilter = 0x44,
+            //TransmitterTimeGuard = 0x12,
+            TransmitterTimeGuard = 0x48,
+            //ReceiverTimeOut = 0x13
+            ReceiverTimeOut = 0x4c
         }
 
         [Flags]

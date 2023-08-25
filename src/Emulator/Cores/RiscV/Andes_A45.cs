@@ -17,6 +17,7 @@ namespace Antmicro.Renode.Peripherals.CPU
         public Andes_A45(Machine machine, IRiscVTimeProvider timeProvider = null, uint hartId = 0, PrivilegeArchitecture privilegeArchitecture = PrivilegeArchitecture.Priv1_11, Endianess endianness = Endianess.LittleEndian, string cpuType = "rv32imfc")
             : base(null, cpuType, machine, hartId, privilegeArchitecture, endianness, allowUnalignedAccesses : true)
         {
+            this.Log(LogLevel.Info, "Andes_A45 COnstructor");
             /*
             // enable all interrupt sources
             MIE = 0xffffffff;

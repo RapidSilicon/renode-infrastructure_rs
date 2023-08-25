@@ -32,6 +32,7 @@ namespace Antmicro.Renode.Core
                     return;
                 }
                 state = value;
+                Console.WriteLine("GPIO.cs " + targets.Count);
                 for(var i = 0; i < targets.Count; ++i)
                 {
                     targets[i].Receiver.OnGPIO(targets[i].Number, state);
