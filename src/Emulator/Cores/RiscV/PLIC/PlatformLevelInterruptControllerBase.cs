@@ -70,6 +70,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
 
         public void OnGPIO(int number, bool value)
         {
+            this.Log(LogLevel.Info, "PLICBase.cs : OnGPIO number = {0}, value = {1}", number, value);
             if(!IsIrqSourceAvailable(number))
             {
                 this.Log(LogLevel.Error, "Wrong gpio source: {0}", number);
@@ -77,7 +78,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             }
             lock(irqSources)
             {
-                this.Log(LogLevel.Noisy, "Setting GPIO number #{0} to value {1}", number, value);
+                this.Log(LogLevel.Info, "Setting GPIO number #{0} to value {1}", number, value);
                 var irq = irqSources[number];
                 irq.State = value;
                 irq.IsPending |= value;

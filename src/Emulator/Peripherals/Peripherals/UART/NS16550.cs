@@ -404,6 +404,7 @@ namespace Antmicro.Renode.Peripherals.UART
             else if(((interruptEnable & InterruptEnableLevel.TransmitterHoldingReg) != 0) && (transmitNotPending != 0))
             {
                 interruptId = InterruptLevel.TransmitterHoldingRegEmpty;
+                this.Log(LogLevel.Info, "NS16550.cs Update() setting interruptId {0}", InterruptLevel.TransmitterHoldingRegEmpty);
             }
             else if(((interruptEnable & InterruptEnableLevel.ModemStatus) != 0) && ((modemStatus & ModemStatus.AnyDelta) != 0))
             {

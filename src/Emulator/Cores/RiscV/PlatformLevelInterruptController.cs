@@ -87,8 +87,10 @@ namespace Antmicro.Renode.Peripherals.IRQControllers
             Context0PriorityThreshold = 0x200000,
             Context0ClaimComplete = 0x200004,
             // ...
-            Context1PriorityThreshold = 0x201000,
-            Context1ClaimComplete = 0x201004,
+            //Context1PriorityThreshold = 0x201000,
+            Context1PriorityThreshold = 0x200088,
+            //Context1ClaimComplete = 0x201004,
+            Context1ClaimComplete = 0x20008C,
             // ...
             Context2PriorityThreshold = 0x202000,
             Context2ClaimComplete = 0x202004,

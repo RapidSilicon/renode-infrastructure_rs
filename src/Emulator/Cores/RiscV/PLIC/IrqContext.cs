@@ -41,12 +41,17 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             var forcedContext = irqController.ForcedContext;
             if(forcedContext != -1 && this.id != forcedContext)
             {
+                irqController.Log(LogLevel.Info, "IrqContext.cs: forcedContext = {0}, id = {1}", forcedContext, this.id);
                 irqController.Connections[(int)this.id].Set(false);
                 return;
             }
 
             var currentPriority = activeInterrupts.Count > 0 ? activeInterrupts.Peek().Priority : 0;
             var isPending = enabledSources.Any(x => x.Priority > currentPriority && x.IsPending);
+            if (this.id < 10){ //to prevent all 15000 interrupts from printing
+                irqController.Log(LogLevel.Info, "IrqContext.cs: currentPriority = {0}, isPending = {1}, id = {2} ", currentPriority, isPending, this.id);
+            }
+
             irqController.Connections[(int)this.id].Set(isPending);
         }
 
@@ -80,7 +85,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             {
                 enabledSources.Remove(s);
             }
-            irqController.Log(LogLevel.Noisy, "{0} source #{1} @ {2}", enabled ? "Enabling" : "Disabling", s.Id, this);
+            irqController.Log(LogLevel.Info, "{0} source #{1} @ {2}", enabled ? "Enabling" : "Disabling", s.Id, this);
             RefreshInterrupt();
         }
 

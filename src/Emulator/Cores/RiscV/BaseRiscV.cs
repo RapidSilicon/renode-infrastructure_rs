@@ -119,7 +119,7 @@ namespace Antmicro.Renode.Peripherals.CPU
 
         public override void OnGPIO(int number, bool value)
         {
-
+            this.Log(LogLevel.Info, "OnGPIO called in BaseRiscV.cs number = {0}, value = {1}", number, value);
             // we don't log warning when value is false to handle gpio initial reset
             if(privilegeArchitecture >= PrivilegeArchitecture.Priv1_10 && IsValidInterruptOnlyInV1_09(number) && value)
             {

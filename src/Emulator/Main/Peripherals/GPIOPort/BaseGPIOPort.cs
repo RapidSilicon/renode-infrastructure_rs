@@ -124,6 +124,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
 
         public virtual void OnGPIO(int number, bool value)
         {
+            this.Log(LogLevel.Info, "BaseGPIOPort.cs: IRQ {0}, value {1}", number, value);
             if(!CheckPinNumber(number))
             {
                 return;

@@ -356,7 +356,7 @@ namespace Antmicro.Renode.Peripherals.CPU
                 {
                     CheckIfOnSynchronizedThread();
                 }
-                this.NoisyLog("IRQ {0}, value {1}", number, value);
+                this.Log(LogLevel.Info, "TranslationCPU.cs: IRQ {0}, value {1}", number, value);
                 // as we are waiting for an interrupt we should, obviously, not mask it
                 if(started && (lastTlibResult == TlibExecutionResult.WaitingForInterrupt || !(DisableInterruptsWhileStepping && IsSingleStepMode)))
                 {
@@ -2022,7 +2022,7 @@ namespace Antmicro.Renode.Peripherals.CPU
                 irqs = new HashSet<int>();
                 decodedIrqs.Add(decodedInterrupt, irqs);
             }
-            this.Log(LogLevel.Noisy, "Setting CPU IRQ #{0} to {1}", number, state);
+            this.Log(LogLevel.Info, "Setting CPU IRQ #{0} to {1}", number, state);
             if(state)
             {
                 irqs.Add(number);
