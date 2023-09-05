@@ -179,6 +179,9 @@ namespace Antmicro.Renode.Peripherals.UART
                     lineControl = (LineControl)value;
                     break;
 
+                case Register.oscr:
+                    break;
+
                 case Register.ModemControl:
                     modemControl = (ModemControl)(value & 0x1F);
                     break;
@@ -332,9 +335,9 @@ namespace Antmicro.Renode.Peripherals.UART
                         value = scratchRegister;
                         break;
 
-                    case Register.MultiModeControl0:
-                        this.Log(LogLevel.Warning, "Unsupported read from LIN configuration register at offset 0x{0:X}.", originalOffset);
-                        break;
+                    //case Register.MultiModeControl0:
+                    //    this.Log(LogLevel.Warning, "Unsupported read from LIN configuration register at offset 0x{0:X}.", originalOffset);
+                    //    break;
                     case Register.MultiModeControl1:
                         this.Log(LogLevel.Warning, "Unsupported read from RZI configuration register at offset 0x{0:X}.", originalOffset);
                         break;
@@ -454,6 +457,8 @@ namespace Antmicro.Renode.Peripherals.UART
         private enum Register:uint
         {
             IDRev = 0x00,
+	    cfg = 0x10,
+	    oscr = 0x14,
             Data = 0x20,
             DivisorLatchL = 0x20,
             // the same as Data but accessible only when DLAB bit is set
