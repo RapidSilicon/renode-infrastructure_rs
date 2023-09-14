@@ -60,6 +60,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers
             {
                 AddContextEnablesRegister(registersMap, (long)Registers.Context0Enables + i * ContextEnablesWidth, i, numberOfSources);
                 AddContextClaimCompleteRegister(registersMap, (long)Registers.Context0ClaimComplete + i * ContextClaimWidth, i);
+                AddContextPriorityThresholdRegisterPLIC(registersMap, (long)Registers.Context0PriorityThreshold + i * ContextPriorityThresholdWidth, i);
             }
 
             registers = new DoubleWordRegisterCollection(this, registersMap);
@@ -87,8 +88,10 @@ namespace Antmicro.Renode.Peripherals.IRQControllers
             Context0PriorityThreshold = 0x200000,
             Context0ClaimComplete = 0x200004,
             // ...
-            Context1PriorityThreshold = 0x201000,
-            Context1ClaimComplete = 0x201004,
+            //Context1PriorityThreshold = 0x201000,
+            Context1PriorityThreshold = 0x200088,
+            //Context1ClaimComplete = 0x201004,
+            Context1ClaimComplete = 0x20008C,
             // ...
             Context2PriorityThreshold = 0x202000,
             Context2ClaimComplete = 0x202004,
@@ -101,6 +104,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers
             // ...
         }
 
+        private const long ContextPriorityThresholdWidth = Registers.Context1PriorityThreshold - Registers.Context0PriorityThreshold;
         private const long ContextEnablesWidth = Registers.Context1Enables - Registers.Context0Enables;
         private const long ContextClaimWidth = Registers.Context1ClaimComplete - Registers.Context0ClaimComplete;
         private const uint MaxSources = (uint)(ContextEnablesWidth / 4) * 32;
