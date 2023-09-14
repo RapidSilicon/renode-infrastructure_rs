@@ -44,6 +44,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
 
         public uint ReadDoubleWord(long offset)
         {
+            //Console.WriteLine("Debugging, PLICbase.cs: ReadDoubleWord(): offset = 0x{0:x8}", offset); //debugging
             return registers.Read(offset);
         }
 
@@ -66,6 +67,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
         public void WriteDoubleWord(long offset, uint value)
         {
             registers.Write(offset, value);
+            //Console.WriteLine("Debugging, PLICbase.cs: WriteDoubleWord(): offset = 0x{0:x8}, value = 0x{1:x8}", offset, value); //debugging
         }
 
         public void OnGPIO(int number, bool value)
@@ -108,6 +110,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
 
         protected void AddContextClaimCompleteRegister(Dictionary<long, DoubleWordRegister> registersMap, long offset, uint contextId)
         {
+            //Console.WriteLine("Debugging, AddContextClaimCompleteRegister(): offset = 0x{0:x8}, contextID = {1}", offset, contextId); //debugging
             registersMap.Add(offset, new DoubleWordRegister(this).WithValueField(0, 32, valueProviderCallback: _ =>
             {
                 lock(irqSources)
@@ -119,7 +122,10 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             {
                 if(!IsIrqSourceAvailable((int)value))
                 {
-                    this.Log(LogLevel.Error, "Trying to complete handling of non-existing interrupt source {0}", value);
+                    //excluding source 0 since we return 0 when ignoring interrupt from priority threshold
+                    if ((int)value != 0){
+                        this.Log(LogLevel.Error, "Trying to complete handling of non-existing interrupt source {0}", value);
+                    }                   
                     return;
                 }
                 lock(irqSources)
@@ -132,7 +138,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
         protected void AddContextEnablesRegister(Dictionary<long, DoubleWordRegister> registersMap, long address, uint contextId, int numberOfSources)
         {
             var maximumSourceDoubleWords = (int)Math.Ceiling((numberOfSources + 1) / 32.0) * 4;
-
+            //Console.WriteLine("Debugging, AddContextEnablesRegister(): maximumSourceDoubleWords = 0x{0:x8}, address = 0x{1:x8}, contextID = {2}", maximumSourceDoubleWords, address, contextId); //debugging
             for(var offset = 0u; offset < maximumSourceDoubleWords; offset += 4)
             {
                 var lOffset = offset;
@@ -156,13 +162,35 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
                                 }
                                 continue;
                             }
-
+                            
                             irqContexts[contextId].EnableSource(irqSources[sourceNumber], bits[bit]);
                         }
                         RefreshInterrupts();
                     }
                 }));
             }
+        }
+
+        //adapted from OpenTitan_PlatformLevelInterruptController.cs
+        protected void AddContextPriorityThresholdRegisterPLIC(Dictionary<long, DoubleWordRegister> registersMap, long offset, uint contextId)
+        {
+            //Console.WriteLine("Debugging, AddContextPriorityThresholdRegister(): offset = 0x{0:x8}, contextID = {1}", offset, contextId); //debugging
+            this.Log(LogLevel.Noisy, "Adding Context {0} threshold priority register address 0x{1:X}", contextId, offset);
+            registersMap.Add(offset, new DoubleWordRegister(this).WithValueField(0, 32, valueProviderCallback: _ =>
+                    {
+                        lock(irqSources)
+                        {
+                            return irqContexts[contextId].PriorityThreshold;
+                            
+                        }
+                    },
+                    writeCallback: (_, value) =>
+                    {
+                        lock(irqSources)
+                        {
+                            irqContexts[contextId].PriorityThreshold = value;
+                        }
+                    }));
         }
 
         protected virtual bool IsIrqSourceAvailable(int number)
