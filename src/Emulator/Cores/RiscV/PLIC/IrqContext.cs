@@ -18,8 +18,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
         {
             this.irqController = irqController;
             this.id = id;
-            this.priorityThreshold = 0; //need to change?
-
+            this.priorityThreshold = 0;
 
             enabledSources = new HashSet<IrqSource>();
             activeInterrupts = new Stack<IrqSource>();
@@ -48,10 +47,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             }
 
             var currentPriority = activeInterrupts.Count > 0 ? activeInterrupts.Peek().Priority : 0; 
-
             var isPending = enabledSources.Any(x => x.Priority > currentPriority && x.IsPending);
-
-            //irqController.Log(LogLevel.Info, "IrqContext.cs: RefreshInterrupt(): currentPriority {0} isPending = {1}", currentPriority, isPending);
             irqController.Connections[(int)this.id].Set(isPending);
         }
 
@@ -119,12 +115,9 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             }
             else
             {
-                //returns the highest-priority, pending Irq from enabled Sources. If there is a tie in priority, lowest ID returned first:
                 pendingIrq = enabledSources.Where(x => x.IsPending)
                     .OrderByDescending(x => x.Priority)
                     .ThenBy(x => x.Id).FirstOrDefault(); 
-
-                irqController.Log(LogLevel.Noisy, "IrqContext.cs: AcknowledgePendingInterrupt(): pendingIrq {0}", pendingIrq);
             }
 
             if(pendingIrq == null)
@@ -142,12 +135,11 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
                 return pendingIrq.Id;
             }
             else{
-                irqController.Log(LogLevel.Info, "Not acknowledging pending interrupt #{0} @ {1} since priorityThreshold = {2} > priority = {3}",
+                irqController.Log(LogLevel.Info, "Ignore pending interrupt #{0} @ {1} (priorityThreshold = {2} > priority = {3})",
                  pendingIrq.Id, this, this.priorityThreshold, pendingIrq.Priority);
                 RefreshInterrupt();
                 return 0;
             }
-
             
         }
 
