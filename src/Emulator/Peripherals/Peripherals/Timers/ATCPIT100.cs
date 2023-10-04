@@ -30,8 +30,6 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
 
             timerEnabled = new IFlagRegisterField[TimersCount];
-            functionSelect = new IEnumRegisterField<FunctionSelect>[TimersCount];
-
             Connections = new ReadOnlyDictionary<int, IGPIO>(innerConnections);
 
             DefineRegisters();
@@ -62,7 +60,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             for(var i = 0 ; i < TimersCount; ++i)
             {
-                internalTimers[i].Enabled = timerEnabled[i].Value; //use 
+                internalTimers[i].Enabled = timerEnabled[i].Value;
             }
 
             RequestReturnOnAllCPUs();
@@ -74,8 +72,6 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 var interrupt = false;
                 interrupt |= internalTimers[i].Compare0Event && internalTimers[i].Compare0Interrupt;
-                interrupt |= internalTimers[i].Compare1Event && internalTimers[i].Compare1Interrupt;
-
                 if(Connections[i].IsSet != interrupt)
                 {
                     this.NoisyLog("Changing Interrupt{0} from {1} to {2}", i, Connections[i].IsSet, interrupt);
@@ -85,9 +81,31 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
         }
 
-        
 
+        private void TimerEnable(){
 
+            /*
+             * compare ChannelN_Control_ChMode[] with the timer you are trying to enable
+             * only set timer if channel mode matches which timer you are trying to enable
+             * ie timer 1 cannot be set if channel is in 32bit timer mode
+
+             * set timerEnabled[i].Value = 1;
+            */
+        }
+
+        private void ReloadRegister(int channelNum, int timerNum, int reloadValue){
+            /*
+             * set channel n reload value depending on ChannelN_Control_ChMode[] by bitshifting values
+             * 
+            */
+        }
+
+         private void InterruptEnable(int channelNum, int timerNum, int reloadValue){
+            /*
+             * 
+             * 
+            */
+        }
 
         //define registers here, add read/write callback, define bitfields
         private void DefineRegisters()
@@ -105,45 +123,89 @@ namespace Antmicro.Renode.Peripherals.Timers
                 .WithFlag(14, FieldMode.Set, name: "Ch3Int2En",
                     changeCallback: _ => ChannelN_InterruptM_En[3][2])
             ;
+
             Registers.IntSt.Define(this)
+                // note: Write 1 to clear, use FieldMode.WriteOneToClear
+
                 //implement R/W here using ChannelN_InterruptM_St[][]
             ;
+
             Registers.ChEn.Define(this)
                 //implement R/W here using ChannelN_TimerM_EN[][]
+
+                //direct changeCallback to timerEnable()
             ;
+
             Registers.Ch0Ctrl.Define(this) //Channel 0 Control Register
                 //implement R/W here using ChannelN_Control_PWM_Park, ChannelN_Control_ChClk, ChannelN_Control_ChMode
+
+                //direct changeCallback to timerEnable()
             ;
+
             Registers.Ch0Reload.Define(this) //Channel 0 Reload Register
                 //implement R/W here using ChannelN_Reload
+
+                //direct changeCallback to reloadRegister()
+
+                switch(ChannelN_Control_ChMode[0]){
+                    case ChannelMode.Timer_32bit:
+                        .WithValueField(0, 31, FieldMode.Set, name: "TMR32_0", 
+                            changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue));
+                        break;
+                    case.ChannelMode.Timer_16bit:
+                        //etc etc
+                }
             ;
+
             Registers.Ch0Cntr.Define(this) //Channel 0 Counter Register
                 //implement R/W here
             ;
+
             Registers.Ch1Ctrl.Define(this) //Channel 1 Control Register
                 //implement R/W here using ChannelN_Control_PWM_Park, ChannelN_Control_ChClk, ChannelN_Control_ChMode
+
+                //direct changeCallback to timerEnable()
+
             ;
+
             Registers.Ch1Reload.Define(this) //Channel 1 Reload Register
                 //implement R/W here using ChannelN_Reload
+
+                //direct changeCallback to reloadRegister()
             ;
+
             Registers.Ch1Cntr.Define(this) //Channel 1 Counter Register
                 //implement R/W here
             ;
+
             Registers.Ch2Ctrl.Define(this) //Channel 2 Control Register
                 //implement R/W here using ChannelN_Control_PWM_Park, ChannelN_Control_ChClk, ChannelN_Control_ChMode
+
+                //direct changeCallback to timerEnable()
             ;
+
             Registers.Ch2Reload.Define(this) //Channel 2 Reload Register
                 //implement R/W here using ChannelN_Reload
+
+                //direct changeCallback to reloadRegister()
             ;
+
             Registers.Ch2Cntr.Define(this) //Channel 2 Counter Register
                 //implement R/W here
             ;
+
             Registers.Ch3Ctrl.Define(this) //Channel 3 Control Register
                 //implement R/W here using ChannelN_Control_PWM_Park, ChannelN_Control_ChClk, ChannelN_Control_ChMode
+
+                //direct changeCallback to timerEnable()
             ;
+
             Registers.Ch3Reload.Define(this) //Channel 3 Reload Register
                 //implement R/W here using ChannelN_Reload
+
+                //direct changeCallback to reloadRegister()
             ;
+
             Registers.Ch3Cntr.Define(this) //Channel 3 Counter Register
                 //implement R/W here
             ;
@@ -176,16 +238,10 @@ namespace Antmicro.Renode.Peripherals.Timers
             public InternalTimer(IPeripheral parent, IClockSource clockSource, int index)
             {
                 compare0Timer = new ComparingTimer(clockSource, 1, parent, $"timer{index}cmp0", limit: 0xFFFFFFFF, compare: 0xFFFFFFFF, enabled: false);
-                compare1Timer = new ComparingTimer(clockSource, 1, parent, $"timer{index}cmp1", limit: 0xFFFFFFFF, compare: 0xFFFFFFFF, enabled: false);
 
                 compare0Timer.CompareReached += () =>
                 {
                     Compare0Event = true;
-                    CompareReached();
-                };
-                compare1Timer.CompareReached += () =>
-                {
-                    Compare1Event = true;
                     CompareReached();
                 };
             }
@@ -194,7 +250,6 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 Enabled = false;
                 Compare0Event = false;
-                Compare1Event = false;
             }
 
             public bool Enabled
@@ -209,7 +264,6 @@ namespace Antmicro.Renode.Peripherals.Timers
 
                     Value = 0;
                     compare0Timer.Enabled = value;
-                    compare1Timer.Enabled = value;
                 }
             }
 
@@ -221,7 +275,6 @@ namespace Antmicro.Renode.Peripherals.Timers
                 set
                 {
                     compare0Timer.Value = value;
-                    compare1Timer.Value = value;
                 }
             }
 
@@ -231,7 +284,6 @@ namespace Antmicro.Renode.Peripherals.Timers
                 set
                 {
                     compare0Timer.Frequency = value;
-                    compare1Timer.Frequency = value;
                 }
             }
 
@@ -241,7 +293,6 @@ namespace Antmicro.Renode.Peripherals.Timers
                 set
                 {
                     compare0Timer.Divider = value;
-                    compare1Timer.Divider = value;
                 }
             }
 
@@ -251,25 +302,12 @@ namespace Antmicro.Renode.Peripherals.Timers
                 set => compare0Timer.Compare = value;
             }
 
-            public ulong Compare1
-            {
-                get => compare1Timer.Compare;
-                set => compare1Timer.Compare = value;
-            }
-
             public bool Compare0Event { get; set; }
-            public bool Compare1Event { get; set; }
 
             public bool Compare0Interrupt
             {
                 get => compare0Timer.EventEnabled;
                 set => compare0Timer.EventEnabled = value;
-            }
-
-            public bool Compare1Interrupt
-            {
-                get => compare1Timer.EventEnabled;
-                set => compare1Timer.EventEnabled = value;
             }
 
             public Action OnCompare;
@@ -285,7 +323,6 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
 
             private readonly ComparingTimer compare0Timer;
-            private readonly ComparingTimer compare1Timer;
         }
 
         private enum ChannelMode : ushort 
