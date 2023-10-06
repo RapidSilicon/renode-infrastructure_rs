@@ -33,6 +33,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             Connections = new ReadOnlyDictionary<int, IGPIO>(innerConnections);
 
             DefineRegisters();
+            DefineReloadRegisters();
             Reset();
         }
 
@@ -74,7 +75,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 interrupt |= internalTimers[i].Compare0Event && internalTimers[i].Compare0Interrupt;
                 if(Connections[i].IsSet != interrupt)
                 {
-                    this.NoisyLog("Changing Interrupt{0} from {1} to {2}", i, Connections[i].IsSet, interrupt);
+                    this.InfoLog("Changing Interrupt{0} from {1} to {2}", i, Connections[i].IsSet, interrupt);
                 }
 
                 Connections[i].Set(interrupt);
@@ -93,11 +94,11 @@ namespace Antmicro.Renode.Peripherals.Timers
             */
         }
 
-        private void ReloadRegister(int channelNum, int timerNum, int reloadValue){
+        private void ReloadRegister(int channelNum, int timerNum, ulong reloadValue){
             /*
              * set channel n reload value depending on ChannelN_Control_ChMode[] by bitshifting values
              * 
-            */
+             */
         }
 
          private void InterruptEnable(int channelNum, int timerNum, int reloadValue){
@@ -107,21 +108,50 @@ namespace Antmicro.Renode.Peripherals.Timers
             */
         }
 
+        private void DefineReloadRegisters(){
+            switch(ChannelN_Control_ChMode[0]){
+                    case ChannelMode.Timer_32bit:
+                        Registers.Ch0Reload.Define(this)
+                            .WithValueField(0, 31, FieldMode.Read | FieldMode.Write, name: "TMR32_0", 
+                            changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue));
+                        break;
+                    case ChannelMode.Timer_16bit:
+                        Registers.Ch0Reload.Define(this)
+                            .WithValueField(0, 16, FieldMode.Read | FieldMode.Write, name: "TMR16_0", 
+                            changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue))
+                            .WithValueField(16, 32, FieldMode.Read | FieldMode.Write, name: "TMR16_2", 
+                            changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue));
+                        break;
+                    case Channel
+                }
+            switch(ChannelN_Control_ChMode[1]){
+
+            }
+
+
+        }
+
         //define registers here, add read/write callback, define bitfields
         private void DefineRegisters()
         {
             Registers.Cfg.Define(this)
-                .WithReservedBits(3,31)
-                .WithValueField(0, 3, FieldMode.Read, name:"NumCh",
-                    valueProviderCallback: valueProviderCallback: _ => channelCount)
+                //.WithReservedBits(3,31)
+                .WithValueField(0, 2, FieldMode.Read, name:"NumCh",
+                    valueProviderCallback: _ => channelCount)
             ;
 
             Registers.IntEn.Define(this)
-                .WithReservedBits(16,31)
-                .WithFlag(15, FieldMode.Set, name: "Ch3Int3En",
-                    changeCallback: _ => ChannelN_InterruptM_En[3][3])
-                .WithFlag(14, FieldMode.Set, name: "Ch3Int2En",
-                    changeCallback: _ => ChannelN_InterruptM_En[3][2])
+                //.WithReservedBits(16,31)
+                .WithFlag(15, FieldMode.Read | FieldMode.Write, name: "Ch3Int3En",
+                    changeCallback: (_, value) =>
+                    {
+                        ChannelN_InterruptM_En[3, 3] = value;
+                    })
+                .WithFlag(14, FieldMode.Read | FieldMode.Write, name: "Ch3Int2En",
+                    changeCallback: (_, value) =>
+                    {
+                        ChannelN_InterruptM_En[3, 2] = value;
+                    })
             ;
 
             Registers.IntSt.Define(this)
@@ -140,22 +170,21 @@ namespace Antmicro.Renode.Peripherals.Timers
                 //implement R/W here using ChannelN_Control_PWM_Park, ChannelN_Control_ChClk, ChannelN_Control_ChMode
 
                 //direct changeCallback to timerEnable()
+                //.WithReservedBits(5,31)
+                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch0PwmPark",
+                    valueProviderCallback: _ => ChannelN_Control_PWM_Park[0])
+                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch0clk",
+                    valueProviderCallback: _ => ChannelN_Control_ChClk[0])
+                .WithValueField(0, 2, FieldMode.Read | FieldMode.Write, name: "Ch0Mode", 
+                    valueProviderCallback: _ => (ulong) ChannelN_Control_ChMode[0])
             ;
 
-            Registers.Ch0Reload.Define(this) //Channel 0 Reload Register
+            //Channel 0 Reload Register
                 //implement R/W here using ChannelN_Reload
 
                 //direct changeCallback to reloadRegister()
 
-                switch(ChannelN_Control_ChMode[0]){
-                    case ChannelMode.Timer_32bit:
-                        .WithValueField(0, 31, FieldMode.Set, name: "TMR32_0", 
-                            changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue));
-                        break;
-                    case.ChannelMode.Timer_16bit:
-                        //etc etc
-                }
-            ;
+                
 
             Registers.Ch0Cntr.Define(this) //Channel 0 Counter Register
                 //implement R/W here
@@ -219,19 +248,20 @@ namespace Antmicro.Renode.Peripherals.Timers
         private const int channelCount = 4;
 
         //register values variables
-        private const bool [4][4] ChannelN_InterruptM_En;       //ChannelN_InterruptM_En [0][1] is channel 0 interrupt 1 enable
-        private const bool [4][4] ChannelN_InterruptM_St;       //ChannelN_InterruptM_St [0][1] is channel 0 interrupt 1 status
-        private const bool [4][4] ChannelN_TimerM_En;           //ChannelN_TimerM_En [0][1] is channel 0 timer 1 enable
+        private bool [ , ] ChannelN_InterruptM_En = new bool[4, 4];             //ChannelN_InterruptM_En [0][1] is channel 0 interrupt 1 enable
+        private bool [ , ] ChannelN_InterruptM_St = new bool[4, 4];             //ChannelN_InterruptM_St [0][1] is channel 0 interrupt 1 status
+        private bool [ , ] ChannelN_TimerM_En = new bool[4, 4];                 //ChannelN_TimerM_En [0][1] is channel 0 timer 1 enable
 
-        private const bool [4] ChannelN_Control_PWM_Park;       //Channel N's PWM park value
-        private const bool [4] ChannelN_Control_ChClk;          //Channel N's clock source (0 = External clock, 1 = APB Clock)
-        private const ChannelMode [4] ChannelN_Control_ChMode;  //Channel N's channel mode
+        private bool [] ChannelN_Control_PWM_Park = new bool[4];                //Channel N's PWM park value
+        private bool [] ChannelN_Control_ChClk = new bool[4];                   //Channel N's clock source (0 = External clock, 1 = APB Clock)
+        private ChannelMode [] ChannelN_Control_ChMode = new ChannelMode[4];    //Channel N's channel mode
 
-        private const uint [4] ChannelN_Reload;                 //Channel N's reload value(s), depends on ChannelN_Control_ChMode
+        private uint [] ChannelN_Reload = new uint[4];                          //Channel N's reload value(s), depends on ChannelN_Control_ChMode
 
-        private const uint [4] ChannelN_Counter;                //Channel N's Counter value(s), depends on ChannelN_Control_ChMode
+        private uint [] ChannelN_Counter = new uint[4];                         //Channel N's Counter value(s), depends on ChannelN_Control_ChMode
 
         private const int TimersCount = 16;
+         public long Size => 0x68;                          //TODO: check math
 
         private class InternalTimer
         {
@@ -332,7 +362,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             Timer_8bit      = 3, // four 8 bit timers 0 - 3
             PWM             = 4, // 16 bit PWM
             PWM_Timer_16bit = 6, // 8 bit PWM and 16 bit timer 0
-            PWM_Timer_8bit  = 7; // 8 bit PWM and two 8 bit timers 0 - 1
+            PWM_Timer_8bit  = 7 // 8 bit PWM and two 8 bit timers 0 - 1
         }
 
         private enum Registers : long
