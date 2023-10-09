@@ -82,6 +82,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
         }
 
+        
 
         private void TimerEnable(){
 
@@ -101,11 +102,66 @@ namespace Antmicro.Renode.Peripherals.Timers
              */
         }
 
-         private void InterruptEnable(int channelNum, int timerNum, int interruptValue){
-            /*
-             * 
-             * 
-            */
+         private void InterruptEnable(int channelNum, int timerNum, bool interruptValue){
+            if (interruptValue == false){
+                ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+            }
+            else{
+                switch (ChannelN_Control_ChMode[channelNum]){
+                    case ChannelMode.Timer_32bit:
+                        if (timerNum == 0){
+                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        }
+                        else{
+                            this.Log(LogLevel.Error, "Can only set timer0 when channel {0} is in {1} mode", 
+                                channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
+                    break;
+                    case ChannelMode.Timer_16bit:
+                        if ((timerNum == 0) || (timerNum == 1)){
+                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        }
+                        else{
+                            this.Log(LogLevel.Error, "Can only set timers 0 & 1 when channel {0} is in {1} mode", 
+                                channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
+                    break;
+                    case ChannelMode.Timer_8bit:
+                        if ((timerNum >= 0) && (timerNum <= 3)){
+                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        }
+                        else{
+                            this.Log(LogLevel.Error, "Can only set timers 0 - 3 when channel {0} is in {1} mode", 
+                                channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
+                    break;
+                    case ChannelMode.PWM:
+                        //TODO: Set PWM interrupt value
+                    break;
+                    case ChannelMode.PWM_Timer_16bit:
+                        //TODO: Set PWM interrupt value
+                        if (timerNum == 0){
+                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        }
+                        else{
+                            this.Log(LogLevel.Error, "Can only set timer0 when channel {0} is in {1} mode", 
+                                channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
+                    break;
+                    case ChannelMode.PWM_Timer_8bit:
+                        //TODO: Set PWM interrupt value
+                        if ((timerNum == 0) || (timerNum == 1)){
+                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        }
+                        else{
+                            this.Log(LogLevel.Error, "Can only set timers 0 & 1 when channel {0} is in {1} mode", 
+                                channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
+                    break;
+                }
+            }
+            this.InfoLog("setting ch{0} timer{1}'s interrupt value to {2} with channel mode {3}", 
+                channelNum, timerNum, interruptValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
         }
 
         //call define reload Registers again when changing channel mode(s) to redefine registers
@@ -116,12 +172,15 @@ namespace Antmicro.Renode.Peripherals.Timers
                         //TODO: errors when trying to redefine register: "An item with the same key has already been added. Key: 36"
                         //Solution to implement: remove register then define again - requires register to be defined upon initalization
                         //                       in separate function
-                        
-                        //Registers.Ch0Reload.Remove(this);
+
+
+                        this.InfoLog("registers info: {0}");
+                        //registers.Remove(Registers.Ch0Reload);
 
                         Registers.Ch0Reload.Define(this)
                             .WithValueField(0, 31, FieldMode.Read | FieldMode.Write, name: "TMR32_0", 
-                            changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue, ChannelMode.Timer_32bit));
+                            changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue, ChannelMode.Timer_32bit),
+                            valueProviderCallback: _ => { return ChannelN_Reload[0]; } );
                         break;
                     case ChannelMode.Timer_16bit:
                         this.InfoLog("setting channel0 reload register to two 16bit timers mode");
@@ -143,7 +202,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                             .WithValueField(24, 8, FieldMode.Read | FieldMode.Write, name: "TMR8_3", 
                             changeCallback: (_, newValue) => ReloadRegister(0, 0, newValue, ChannelMode.Timer_8bit));
                         break;
-                }
+            }
             switch(ChannelN_Control_ChMode[1]){
                 
             }
@@ -174,15 +233,41 @@ namespace Antmicro.Renode.Peripherals.Timers
             Registers.IntEn.Define(this)
                 .WithReservedBits(16,16)
                 .WithFlag(15, FieldMode.Read | FieldMode.Write, name: "Ch3Int3En",
-                    changeCallback: (_, value) =>
-                    {
-                        ChannelN_InterruptM_En[3, 3] = value;
-                    })
+                    changeCallback: (_, value) => InterruptEnable(3, 3, (bool)value), 
+                    valueProviderCallback: _ => { return ChannelN_InterruptM_En[3, 3]; } )
                 .WithFlag(14, FieldMode.Read | FieldMode.Write, name: "Ch3Int2En",
-                    changeCallback: (_, value) =>
-                    {
-                        ChannelN_InterruptM_En[3, 2] = value;
-                    })
+                    changeCallback: (_, value) => InterruptEnable(3, 2, (bool)value))
+                .WithFlag(13, FieldMode.Read | FieldMode.Write, name: "Ch3Int1En",
+                    changeCallback: (_, value) => InterruptEnable(3, 1, (bool)value))
+                .WithFlag(12, FieldMode.Read | FieldMode.Write, name: "Ch3Int0En",
+                    changeCallback: (_, value) => InterruptEnable(3, 0, (bool)value))
+
+                .WithFlag(11, FieldMode.Read | FieldMode.Write, name: "Ch2Int3En",
+                    changeCallback: (_, value) => InterruptEnable(2, 3, (bool)value))
+                .WithFlag(10, FieldMode.Read | FieldMode.Write, name: "Ch2Int2En",
+                    changeCallback: (_, value) => InterruptEnable(2, 2, (bool)value))
+                .WithFlag(9, FieldMode.Read | FieldMode.Write, name: "Ch2Int1En",
+                    changeCallback: (_, value) => InterruptEnable(2, 1, (bool)value))
+                .WithFlag(8, FieldMode.Read | FieldMode.Write, name: "Ch2Int0En",
+                    changeCallback: (_, value) => InterruptEnable(2, 0, (bool)value))
+
+                .WithFlag(7, FieldMode.Read | FieldMode.Write, name: "Ch1Int3En",
+                    changeCallback: (_, value) => InterruptEnable(1, 3, (bool)value))
+                .WithFlag(6, FieldMode.Read | FieldMode.Write, name: "Ch1Int2En",
+                    changeCallback: (_, value) => InterruptEnable(1, 2, (bool)value))
+                .WithFlag(5, FieldMode.Read | FieldMode.Write, name: "Ch1Int1En",
+                    changeCallback: (_, value) => InterruptEnable(1, 1, (bool)value))
+                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch1Int0En",
+                    changeCallback: (_, value) => InterruptEnable(1, 0, (bool)value))
+
+                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch0Int3En",
+                    changeCallback: (_, value) => InterruptEnable(0, 3, (bool)value))
+                .WithFlag(2, FieldMode.Read | FieldMode.Write, name: "Ch0Int2En",
+                    changeCallback: (_, value) => InterruptEnable(0, 2, (bool)value))
+                .WithFlag(1, FieldMode.Read | FieldMode.Write, name: "Ch0Int1En",
+                    changeCallback: (_, value) => InterruptEnable(0, 1, (bool)value))
+                .WithFlag(0, FieldMode.Read | FieldMode.Write, name: "Ch0Int0En",
+                    changeCallback: (_, value) => InterruptEnable(0, 0, (bool)value))
             ;
 
             Registers.IntSt.Define(this)
@@ -195,6 +280,18 @@ namespace Antmicro.Renode.Peripherals.Timers
                 //implement R/W here using ChannelN_TimerM_EN[][]
 
                 //direct changeCallback to timerEnable()
+
+                .WithReservedBits(16,16)
+                    .WithFlag(15, FieldMode.Read | FieldMode.Write, name: "Ch3Int3En",
+                        changeCallback: (_, value) =>
+                        {
+                           
+                        })
+                    .WithFlag(14, FieldMode.Read | FieldMode.Write, name: "Ch3Int2En",
+                        changeCallback: (_, value) =>
+                        {
+                            
+                        })
             ;
 
             Registers.Ch0Ctrl.Define(this) //Channel 0 Control Register
