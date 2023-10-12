@@ -33,7 +33,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             Connections = new ReadOnlyDictionary<int, IGPIO>(innerConnections);
 
             DefineRegisters();
-            DefineReloadRegisters();
+            //DefineReloadRegisters();
             Reset();
         }
 
@@ -95,11 +95,29 @@ namespace Antmicro.Renode.Peripherals.Timers
             */
         }
 
-        private void ReloadRegister(int channelNum, int timerNum, ulong reloadValue, ChannelMode chMode){
+        private void ReloadRegister(int channelNum, ulong reloadValue){
             /*
              * set channel n reload value depending on ChannelN_Control_ChMode[] by bitshifting values
-             * 
              */
+
+             switch(ChannelN_Control_ChMode[channelNum]){
+                case ChannelMode.Timer_32bit:
+                    ChannelN_Reload[channelNum, 0] = (uint)(reloadValue & 0xFFFFFFFF);
+                    break;
+                case ChannelMode.Timer_16bit:
+                    ChannelN_Reload[channelNum, 0] = (uint)(reloadValue & 0x0000FFFF);
+                    ChannelN_Reload[channelNum, 1] = (uint)((reloadValue & 0xFFFF0000) >> 16);
+                    break;
+                case ChannelMode.Timer_8bit:
+                    ChannelN_Reload[channelNum, 0] = (uint)(reloadValue & 0x000000FF);
+                    ChannelN_Reload[channelNum, 1] = (uint)((reloadValue & 0x0000FF00) >> 8);
+                    ChannelN_Reload[channelNum, 2] = (uint)((reloadValue & 0x00FF0000) >> 16);
+                    ChannelN_Reload[channelNum, 3] = (uint)((reloadValue & 0xFF000000) >> 24);
+                    break;
+            }
+            this.InfoLog("setting ch{0} timer 0's reload value with channel mode {1}", 
+                        channelNum, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
+
         }
 
          private void InterruptEnable(int channelNum, int timerNum, bool interruptValue){
@@ -116,7 +134,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                             this.Log(LogLevel.Error, "Can only set timer0 when channel {0} is in {1} mode", 
                                 channelNum, ChannelN_Control_ChMode[channelNum]);
                         }
-                    break;
+                        break;
                     case ChannelMode.Timer_16bit:
                         if ((timerNum == 0) || (timerNum == 1)){
                             ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
@@ -125,7 +143,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                             this.Log(LogLevel.Error, "Can only set timers 0 & 1 when channel {0} is in {1} mode", 
                                 channelNum, ChannelN_Control_ChMode[channelNum]);
                         }
-                    break;
+                        break;
                     case ChannelMode.Timer_8bit:
                         if ((timerNum >= 0) && (timerNum <= 3)){
                             ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
@@ -134,10 +152,10 @@ namespace Antmicro.Renode.Peripherals.Timers
                             this.Log(LogLevel.Error, "Can only set timers 0 - 3 when channel {0} is in {1} mode", 
                                 channelNum, ChannelN_Control_ChMode[channelNum]);
                         }
-                    break;
+                        break;
                     case ChannelMode.PWM:
                         //TODO: Set PWM interrupt value
-                    break;
+                        break;
                     case ChannelMode.PWM_Timer_16bit:
                         //TODO: Set PWM interrupt value
                         if (timerNum == 0){
@@ -147,7 +165,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                             this.Log(LogLevel.Error, "Can only set timer0 when channel {0} is in {1} mode", 
                                 channelNum, ChannelN_Control_ChMode[channelNum]);
                         }
-                    break;
+                        break;
                     case ChannelMode.PWM_Timer_8bit:
                         //TODO: Set PWM interrupt value
                         if ((timerNum == 0) || (timerNum == 1)){
@@ -157,13 +175,14 @@ namespace Antmicro.Renode.Peripherals.Timers
                             this.Log(LogLevel.Error, "Can only set timers 0 & 1 when channel {0} is in {1} mode", 
                                 channelNum, ChannelN_Control_ChMode[channelNum]);
                         }
-                    break;
+                        break;
                 }
             }
             this.InfoLog("setting ch{0} timer{1}'s interrupt value to {2} with channel mode {3}", 
                 channelNum, timerNum, interruptValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
         }
 
+        /*
         //call define reload Registers again when changing channel mode(s) to redefine registers
         private void DefineReloadRegisters(){
             switch(ChannelN_Control_ChMode[0]){
@@ -214,12 +233,8 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
 
         }
-
-        private void controlfn(){
-           ulong x = (ulong) ChannelN_Control_ChMode[0];
-           this.InfoLog("channelMode: {0}", x);
-        }
-
+        */
+    
         //define registers here, add read/write callback, define bitfields
         private void DefineRegisters()
         {
@@ -234,7 +249,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 .WithReservedBits(16,16)
                 .WithFlag(15, FieldMode.Read | FieldMode.Write, name: "Ch3Int3En",
                     changeCallback: (_, value) => InterruptEnable(3, 3, (bool)value), 
-                    valueProviderCallback: _ => { return ChannelN_InterruptM_En[3, 3]; } )
+                    valueProviderCallback: _ => { return ChannelN_InterruptM_En[3, 3]; } ) //TODO: test and finish adding for all
                 .WithFlag(14, FieldMode.Read | FieldMode.Write, name: "Ch3Int2En",
                     changeCallback: (_, value) => InterruptEnable(3, 2, (bool)value))
                 .WithFlag(13, FieldMode.Read | FieldMode.Write, name: "Ch3Int1En",
@@ -309,7 +324,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                         if (Enum.IsDefined(typeof(ChannelMode), (ushort)value))
                         {
                             ChannelN_Control_ChMode[0] = (ChannelMode)(ushort)value;
-                            DefineReloadRegisters(); //need to redefine reload registers based on new channel mode
+                            //DefineReloadRegisters(); //need to redefine reload registers based on new channel mode
                         }
                         else
                         {
@@ -322,59 +337,30 @@ namespace Antmicro.Renode.Peripherals.Timers
                 //implement R/W here using ChannelN_Reload
 
                 //direct changeCallback to reloadRegister()
-
-                
+            Registers.Ch0Reload.Define(this)
+                .WithValueField(0, 31, FieldMode.Read | FieldMode.Write, name: "TMR32_0", 
+                changeCallback: (_, newValue) => ReloadRegister(0, newValue),
+                valueProviderCallback: _ => { return ChannelN_Reload[0, 0]; } )
+            ;                
 
             Registers.Ch0Cntr.Define(this) //Channel 0 Counter Register
                 //implement R/W here
             ;
 
             Registers.Ch1Ctrl.Define(this) //Channel 1 Control Register
-                .WithReservedBits(5,27)
-                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch1PwmPark",
-                    changeCallback: (_, value) => { ChannelN_Control_PWM_Park[1] = (bool)value; })
-                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch1clk",
-                    changeCallback: (_, value) => { ChannelN_Control_ChClk[1] = (bool)value; })
-                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch1Mode", 
-                    changeCallback: (_, value) => 
-                    { 
-                        if (Enum.IsDefined(typeof(ChannelMode), (ushort)value))
-                        {
-                            ChannelN_Control_ChMode[1] = (ChannelMode)(ushort)value;
-                            DefineReloadRegisters(); //need to redefine reload registers based on new channel mode
-                        }
-                        else
-                        {
-                            this.Log(LogLevel.Error, "ATCPIT100: Channel 1 unknown channel mode");
-                        }
-                    })
 
             ;
 
+            Registers.Ch1Reload.Define(this)
+
+            ;  
 
             Registers.Ch1Cntr.Define(this) //Channel 1 Counter Register
                 //implement R/W here
             ;
 
             Registers.Ch2Ctrl.Define(this) //Channel 2 Control Register
-                .WithReservedBits(5,27)
-                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch2PwmPark",
-                    changeCallback: (_, value) => { ChannelN_Control_PWM_Park[2] = (bool)value; })
-                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch2clk",
-                    changeCallback: (_, value) => { ChannelN_Control_ChClk[2] = (bool)value; })
-                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch2Mode", 
-                    changeCallback: (_, value) => 
-                    { 
-                        if (Enum.IsDefined(typeof(ChannelMode), (ushort)value))
-                        {
-                            ChannelN_Control_ChMode[2] = (ChannelMode)(ushort)value;
-                            DefineReloadRegisters(); //need to redefine reload registers based on new channel mode
-                        }
-                        else
-                        {
-                            this.Log(LogLevel.Error, "ATCPIT100: Channel 2 unknown channel mode");
-                        }
-                    })
+             
             ;
 
             Registers.Ch2Reload.Define(this) //Channel 2 Reload Register
@@ -388,24 +374,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             ;
 
             Registers.Ch3Ctrl.Define(this) //Channel 3 Control Register
-                .WithReservedBits(5,27)
-                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch3PwmPark",
-                    changeCallback: (_, value) => { ChannelN_Control_PWM_Park[3] = (bool)value; })
-                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch3clk",
-                    changeCallback: (_, value) => { ChannelN_Control_ChClk[3] = (bool)value; })
-                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch3Mode", 
-                    changeCallback: (_, value) => 
-                    { 
-                        if (Enum.IsDefined(typeof(ChannelMode), (ushort)value))
-                        {
-                            ChannelN_Control_ChMode[3] = (ChannelMode)(ushort)value;
-                            DefineReloadRegisters(); //need to redefine reload registers based on new channel mode
-                        }
-                        else
-                        {
-                            this.Log(LogLevel.Error, "ATCPIT100: Channel 3 unknown channel mode");
-                        }
-                    })
+            
             ;
 
             Registers.Ch3Reload.Define(this) //Channel 3 Reload Register
@@ -435,7 +404,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         private bool [] ChannelN_Control_ChClk = new bool[4];                   //Channel N's clock source (0 = External clock, 1 = APB Clock)
         private ChannelMode [] ChannelN_Control_ChMode = new ChannelMode[4];    //Channel N's channel mode
 
-        private uint [] ChannelN_Reload = new uint[4];                          //Channel N's reload value(s), depends on ChannelN_Control_ChMode
+        private uint [ , ] ChannelN_Reload = new uint[4, 4];                    //Channel N's reload value(s), depends on ChannelN_Control_ChMode
 
         private uint [] ChannelN_Counter = new uint[4];                         //Channel N's Counter value(s), depends on ChannelN_Control_ChMode
 
