@@ -640,11 +640,12 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             public InternalTimer(IPeripheral parent, IClockSource clockSource, int index, ulong limit)
             {
-                compare0Timer = new ComparingTimer(clockSource, timerFrequency, parent, $"timer{index}cmp0", limit: limit, compare: 0, enabled: false);
+                compare0Timer = new ComparingTimer(clockSource, timerFrequency, parent, $"timer{index}cmp0", limit: limit, compare: limit, enabled: false, workMode: WorkMode.OneShot);
 
                 compare0Timer.CompareReached += () =>
                 {
                     Compare0Event = true;
+                    Console.WriteLine("InternalTimer compareReached");
                     CompareReached();
                 };
             }
@@ -660,7 +661,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get => compare0Timer.Enabled;
                 set
                 {
-                    Console. WriteLine("Setting InternalTimer enabled to {0}", value);
+                    Console.WriteLine("Setting InternalTimer enabled to {0}", value);
                     if(Enabled == value)
                     {
                         return;

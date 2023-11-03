@@ -49,7 +49,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             this.owner = this is IPeripheral && owner == null ? this : owner;
             this.localName = localName;
             InternalReset();
-            this.Log(LogLevel.Info, "Creating ComparingTimers with freq: {0}, limit: 0x{1:X}, compare: {2}", frequency, limit, compare);
+            this.Log(LogLevel.Info, "Creating ComparingTimers with freq: {0}, limit: 0x{1:X}, compare: {2}, clockSource: {3}, workMode: {4}", frequency, limit, compare, clockSource, workMode);
         }
 
         protected ComparingTimer(IClockSource clockSource, long frequency, ulong limit = ulong.MaxValue, Direction direction = Direction.Ascending, bool enabled = false, WorkMode workMode = WorkMode.OneShot, bool eventEnabled = false, ulong compare = ulong.MaxValue, uint divider = 1, uint step = 1) 
@@ -65,7 +65,9 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
             set
             {
+                
                 clockSource.ExchangeClockEntryWith(CompareReachedInternal, oldEntry => oldEntry.With(enabled: value));
+                this.Log(LogLevel.Info, "Setting ComparingTimers enabled to: {0}", value);
             }
         }
 
@@ -189,7 +191,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 return;
             }
-            this.Log(LogLevel.Info, "ComparingTimers: reaching CompareReacehd");
+            this.Log(LogLevel.Info, "ComparingTimers: reaching CompareReached");
 
             CompareReached?.Invoke();
         }
@@ -209,6 +211,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             // since we use OneShot, timer's value is already 0 and it is disabled now
             // first we add old limit to accumulated value:
+            this.Log(LogLevel.Info, "Reaching CompareReachedInternal");
             valueAccumulatedSoFar += clockSource.GetClockEntry(CompareReachedInternal).Period;
             if(valueAccumulatedSoFar >= initialLimit && compareValue != initialLimit)
             {
