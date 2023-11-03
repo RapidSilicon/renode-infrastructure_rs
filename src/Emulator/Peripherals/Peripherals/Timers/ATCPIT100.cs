@@ -43,6 +43,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             Connections = new ReadOnlyDictionary<int, IGPIO>(innerConnections);
 
             DefineRegisters();
+            ResetReloadRegs();
             Reset();
         }
 
@@ -84,6 +85,12 @@ namespace Antmicro.Renode.Peripherals.Timers
         }
 
         public IReadOnlyDictionary<int, IGPIO> Connections { get; }
+
+        private void ResetReloadRegs(){
+            for (var i = 0; i < channelCount; i++){
+                ChannelN_Control_ChMode[i] = ChannelMode.Timer_32bit; //initialize to ChannelMode.Timer_32bit
+            }
+        }
 
         private void RequestReturnOnAllCPUs()
         {
@@ -195,64 +202,32 @@ namespace Antmicro.Renode.Peripherals.Timers
             bool returnVal = false;
             switch (ChannelN_Control_ChMode[channelNum]){
                 case ChannelMode.Timer_32bit:
-                    if (timerNum == 0){
-                        ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Enabled;
-                        returnVal = ChannelN_TimerM_En[channelNum, 0];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read timer0 enable when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Enabled;
+                    returnVal = ChannelN_TimerM_En[channelNum, 0];
                     break;
                 case ChannelMode.Timer_16bit:
-                    if ((timerNum == 0) || (timerNum == 1)){
-                        ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Enabled;
-                        returnVal = ChannelN_TimerM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read timer 0 or 1 enable when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Enabled;
+                    returnVal = ChannelN_TimerM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.Timer_8bit:
-                    if ((timerNum >= 0) && (timerNum <= 3)){
-                        ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Enabled;
-                        returnVal = ChannelN_TimerM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read timers 0-3 enable when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Enabled;
+                    returnVal = ChannelN_TimerM_En[channelNum, timerNum];                    
                     break;
                 case ChannelMode.PWM:
                     //TODO: Set PWM enable value
                     break;
                 case ChannelMode.PWM_Timer_16bit:
                     //TODO: Set PWM enable value
-                    if (timerNum == 0){
-                        ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Enabled;
-                        returnVal = ChannelN_TimerM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read timer 0 or 1 enable when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Enabled;
+                    returnVal = ChannelN_TimerM_En[channelNum, timerNum];                  
                     break;
                 case ChannelMode.PWM_Timer_8bit:
                     //TODO: Set PWM enable value
-                    if ((timerNum == 0) || (timerNum == 1)){
-                        ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Enabled;
-                        returnVal = ChannelN_TimerM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read timers 0-3 enable when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                        //this.LogUnhandledRead()
-                    }
+                    ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Enabled;
+                    returnVal = ChannelN_TimerM_En[channelNum, timerNum];                    
                     break;
+
             }
-            this.Log(LogLevel.Info, "Read ch{0} timer{1}'s enable value {2}, channel mode {3}", 
-                channelNum, timerNum, returnVal, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
             return returnVal;
         }
 
@@ -286,7 +261,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     internalTimers[channelNum, 6].Compare0 = ChannelN_Reload[channelNum, 3];
                     break;
             }
-            this.InfoLog("setting ch{0} reload value to {1} with channel mode {2}", 
+            this.InfoLog("setting ch{0} reload value to 0x{1:X} with channel mode {2}", 
                         channelNum, reloadValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
         }
 
@@ -386,34 +361,16 @@ namespace Antmicro.Renode.Peripherals.Timers
             bool returnVal = false;
             switch (ChannelN_Control_ChMode[channelNum]){
                 case ChannelMode.Timer_32bit:
-                    if (timerNum == 0){
-                        ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Compare0Interrupt;
-                        returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read interrupt enable of timer0 when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Compare0Interrupt;
+                    returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.Timer_16bit:
-                    if ((timerNum == 0) || (timerNum == 1)){
-                        ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Compare0Interrupt;
-                        returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read interrupt enable of timers 0 & 1 when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Compare0Interrupt;
+                    returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.Timer_8bit:
-                    if ((timerNum >= 0) && (timerNum <= 3)){
-                        ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Compare0Interrupt;
-                        returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read interrupt enable of timers 0 - 3 when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Compare0Interrupt;
+                    returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.PWM:
                     //TODO: Set PWM interrupt value
@@ -421,34 +378,19 @@ namespace Antmicro.Renode.Peripherals.Timers
                     break;
                 case ChannelMode.PWM_Timer_16bit:
                     //TODO: Set PWM interrupt value
-                    if (timerNum == 0){
-                        ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Compare0Interrupt;
-                        returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read interrupt enable of timer0 when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Compare0Interrupt;
+                    returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.PWM_Timer_8bit:
                     //TODO: Set PWM interrupt value
-                    if ((timerNum == 0) || (timerNum == 1)){
-                        ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Compare0Interrupt;
-                        returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
-                    }
-                    else{
-                        this.Log(LogLevel.Error, "Cannot read interrupt enable of timers 0 & 1 when channel {0} is in {1} mode", 
-                            channelNum, ChannelN_Control_ChMode[channelNum]);
-                    }
+                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Compare0Interrupt;
+                    returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
                     break;
                 default:
-                    this.Log(LogLevel.Error, "Error reading ch{0} timer{1}'s interrupt enable", channelNum, timerNum);
+                    this.Log(LogLevel.Error, "Error reading ch{0} timer{1}'s interrupt enable. Illegal ChannelMode: {3}", channelNum, timerNum, ChannelN_Control_ChMode[channelNum]);
                     returnVal = false;
                     break;
             }
-
-            this.InfoLog("Reading ch{0} timer{1}'s interrupt enable with channel mode {2}", 
-                channelNum, timerNum, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
             return returnVal;
         }
 
@@ -519,7 +461,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             ;
 
             //Interrupt Status Register
-            Registers.IntSt.Define(this) //TODO
+            Registers.IntSt.Define(this)
                 .WithReservedBits(16,16)
                 .WithFlag(15, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch3Int3",
                     changeCallback: (_, value) =>
@@ -527,6 +469,8 @@ namespace Antmicro.Renode.Peripherals.Timers
                         ChannelN_InterruptM_St[3, 3] = (bool)value; //TODO: for W1C do we need to store !value instead? check W1C functionality
                     },
                     valueProviderCallback: _ => { return ChannelN_InterruptM_St[3, 3]; } )
+
+                //compare0Timer.Value
             ;
 
             //Channel/Timer Enable Register - 0x1C
@@ -575,13 +519,13 @@ namespace Antmicro.Renode.Peripherals.Timers
                     changeCallback: (_, value) =>   { TimerEnable(0, 3, (bool)value); },
                     valueProviderCallback: _    =>  { return TimerEnableReturn(0, 3); } )
                 .WithFlag(2, FieldMode.Read | FieldMode.Write, name: "Ch0TMR2En",
-                    changeCallback: (_, value) =>   { TimerEnable(0, 3, (bool)value); },
+                    changeCallback: (_, value) =>   { TimerEnable(0, 2, (bool)value); },
                     valueProviderCallback: _    =>  { return TimerEnableReturn(0, 2); } )
                 .WithFlag(1, FieldMode.Read | FieldMode.Write, name: "Ch0TMR1En",
-                    changeCallback: (_, value) =>   { TimerEnable(0, 3, (bool)value); },
+                    changeCallback: (_, value) =>   { TimerEnable(0, 1, (bool)value); },
                     valueProviderCallback: _    =>  { return TimerEnableReturn(0, 1); } )
                 .WithFlag(0, FieldMode.Read | FieldMode.Write, name: "Ch0TMR0En",
-                    changeCallback: (_, value) =>   { TimerEnable(0, 3, (bool)value); },
+                    changeCallback: (_, value) =>   { TimerEnable(0, 0, (bool)value); },
                     valueProviderCallback: _    =>  { return TimerEnableReturn(0, 0); } )
             ;
 
@@ -625,44 +569,49 @@ namespace Antmicro.Renode.Peripherals.Timers
                 valueProviderCallback: _ => { return CounterRegisterReturn(0); } )
             ;
 
-            Registers.Ch1Ctrl.Define(this) //Channel 1 Control Register
+            //Channel 1 Control Register
+            Registers.Ch1Ctrl.Define(this) 
 
             ;
 
+            //Channel 1 Reload
             Registers.Ch1Reload.Define(this)
 
             ;  
 
-            Registers.Ch1Cntr.Define(this) //Channel 1 Counter Register
-                //implement R/W here
+            //Channel 1 Counter Register
+            Registers.Ch1Cntr.Define(this) 
+                
             ;
 
-            Registers.Ch2Ctrl.Define(this) //Channel 2 Control Register
+            //Channel 2 Control Register
+            Registers.Ch2Ctrl.Define(this)
              
             ;
 
-            Registers.Ch2Reload.Define(this) //Channel 2 Reload Register
-                //implement R/W here using ChannelN_Reload
-
-                //direct changeCallback to reloadRegister()
+            //Channel 2 Reload Register
+            Registers.Ch2Reload.Define(this) 
+                
             ;
 
-            Registers.Ch2Cntr.Define(this) //Channel 2 Counter Register
-                //implement R/W here
+            //Channel 2 Counter Register
+            Registers.Ch2Cntr.Define(this)
+                
             ;
 
-            Registers.Ch3Ctrl.Define(this) //Channel 3 Control Register
+            //Channel 3 Control Register
+            Registers.Ch3Ctrl.Define(this)
             
             ;
 
-            Registers.Ch3Reload.Define(this) //Channel 3 Reload Register
-                //implement R/W here using ChannelN_Reload
-
-                //direct changeCallback to reloadRegister()
+            //Channel 3 Reload Register
+            Registers.Ch3Reload.Define(this)
+                
             ;
 
-            Registers.Ch3Cntr.Define(this) //Channel 3 Counter Register
-                //implement R/W here
+            //Channel 3 Counter Register
+            Registers.Ch3Cntr.Define(this)
+                
             ;
         }
 
@@ -711,6 +660,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get => compare0Timer.Enabled;
                 set
                 {
+                    Console. WriteLine("Setting InternalTimer enabled to {0}", value);
                     if(Enabled == value)
                     {
                         return;
@@ -750,15 +700,6 @@ namespace Antmicro.Renode.Peripherals.Timers
                 }
             }
 
-            //TODO
-            /*
-            public ulong Limit
-            {
-                get => (ulong)compare0Timer.Limit;
-                set => compare0Timer.Limit = (long)value;
-            }
-            */
-
             public ulong Compare0
             {
                 get => compare0Timer.Compare;
@@ -793,9 +734,11 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         private enum ChannelMode : ushort 
         {
+            //reserverd     = 0
             Timer_32bit     = 1, // one 32 bit timer 0
             Timer_16bit     = 2, // two 16 bit timers 0 - 1
             Timer_8bit      = 3, // four 8 bit timers 0 - 3
+            //reserverd     = 5
             PWM             = 4, // 16 bit PWM
             PWM_Timer_16bit = 6, // 8 bit PWM and 16 bit timer 0
             PWM_Timer_8bit  = 7 // 8 bit PWM and two 8 bit timers 0 - 1

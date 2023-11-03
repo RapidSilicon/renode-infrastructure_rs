@@ -10,6 +10,7 @@ using Antmicro.Renode.Core;
 using Antmicro.Renode.Time;
 using Antmicro.Renode.Exceptions;
 using Antmicro.Renode.Utilities;
+using Antmicro.Renode.Logging;
 
 namespace Antmicro.Renode.Peripherals.Timers
 {
@@ -48,6 +49,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             this.owner = this is IPeripheral && owner == null ? this : owner;
             this.localName = localName;
             InternalReset();
+            this.Log(LogLevel.Info, "Creating ComparingTimers with freq: {0}, limit: 0x{1:X}, compare: {2}", frequency, limit, compare);
         }
 
         protected ComparingTimer(IClockSource clockSource, long frequency, ulong limit = ulong.MaxValue, Direction direction = Direction.Ascending, bool enabled = false, WorkMode workMode = WorkMode.OneShot, bool eventEnabled = false, ulong compare = ulong.MaxValue, uint divider = 1, uint step = 1) 
@@ -95,6 +97,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 {
                     currentValue = valueAccumulatedSoFar + entry.Value;
                 });
+                this.Log(LogLevel.Info, "ComparingTimers value: {0}", currentValue);
                 return currentValue;
             }
             set
@@ -107,6 +110,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 clockSource.ExchangeClockEntryWith(CompareReachedInternal, entry =>
                 {
                     valueAccumulatedSoFar = value;
+                    this.Log(LogLevel.Info, "ComparingTimers value: 0x{0:X}", value);
                     return entry.With(period: CalculatePeriod(), value: 0);
                 });
             }
@@ -128,6 +132,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 {
                     compareValue = value;
                     valueAccumulatedSoFar += entry.Value;
+                    this.Log(LogLevel.Info, "ComparingTimer compare value: 0x{0:X} , valueAccumulatedSoFar: 0x{1:X}", value, valueAccumulatedSoFar);
                     return entry.With(period: CalculatePeriod(), value: 0);
                 });
             }
@@ -184,6 +189,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 return;
             }
+            this.Log(LogLevel.Info, "ComparingTimers: reaching CompareReacehd");
 
             CompareReached?.Invoke();
         }
