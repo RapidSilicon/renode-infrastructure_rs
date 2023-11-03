@@ -394,6 +394,34 @@ namespace Antmicro.Renode.Peripherals.Timers
             return returnVal;
         }
 
+        private bool InterruptStatus(int channelNum, int timerNum){
+            bool returnvalue = false;
+            switch (ChannelN_Control_ChMode[channelNum]){
+                case ChannelMode.Timer_32bit:
+                    if (timerNum == 0) {
+                        ChannelN_InterruptM_St[channelNum, 0] = internalTimers[channelNum, 0].Compare0Event;
+                        returnvalue = ChannelN_InterruptM_St[channelNum, 0];
+                    }
+                    break;
+                case ChannelMode.Timer_16bit:
+                    if ((timerNum == 0) || (timerNum == 1)){
+                        ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Compare0Event;
+                        returnvalue = ChannelN_InterruptM_St[channelNum, timerNum];
+                    }
+                    break;
+
+                case ChannelMode.Timer_8bit:
+                    if ((timerNum >= 0) && (timerNum <= 3)){
+                        ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Compare0Event;
+                        returnvalue = ChannelN_InterruptM_St[channelNum, timerNum];
+                    }
+                    break;
+            }
+            this.InfoLog("status of ch{0} timer{1}'s  is {2} with channel mode {3}",
+                channelNum, timerNum, ChannelN_InterruptM_St[channelNum, timerNum], (ChannelMode)ChannelN_Control_ChMode[channelNum]);
+            return returnvalue;
+        }
+
         //define registers, read/write callback, bitfields
         private void DefineRegisters()
         {
@@ -462,15 +490,62 @@ namespace Antmicro.Renode.Peripherals.Timers
 
             //Interrupt Status Register
             Registers.IntSt.Define(this)
-                .WithReservedBits(16,16)
+                // note: Write 1 to clear, use FieldMode.WriteOneToClear
+                //implement R/W here using ChannelN_InterruptM_St[][]
+                .WithReservedBits(16, 16)
                 .WithFlag(15, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch3Int3",
-                    changeCallback: (_, value) =>
-                    { 
-                        ChannelN_InterruptM_St[3, 3] = (bool)value; //TODO: for W1C do we need to store !value instead? check W1C functionality
-                    },
-                    valueProviderCallback: _ => { return ChannelN_InterruptM_St[3, 3]; } )
+                    valueProviderCallback: _ => { return InterruptStatus(3, 3); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[3, 3]) Reset(); })
+                .WithFlag(14, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch3Int2",
+                    valueProviderCallback: _ => { return InterruptStatus(3, 2); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[3, 2]) Reset(); })
+                .WithFlag(13, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch3Int1",
+                    valueProviderCallback: _ => { return InterruptStatus(3, 1); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[3, 1]) Reset(); })
+               .WithFlag(12, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch3Int0",
+                    valueProviderCallback: _ => { return InterruptStatus(3, 0); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[3, 0]) Reset(); })
 
-                //compare0Timer.Value
+
+                .WithFlag(11, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch2Int3",
+                    valueProviderCallback: _ => { return InterruptStatus(2, 3); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[2, 3]) Reset(); })
+                .WithFlag(10, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch2Int2",
+                    valueProviderCallback: _ => { return InterruptStatus(2, 2); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[2, 2]) Reset(); })
+                .WithFlag(9, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch2Int1",
+                    valueProviderCallback: _ => { return InterruptStatus(2, 1); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[2, 1]) Reset(); })
+                .WithFlag(8, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch2Int0",
+                    valueProviderCallback: _ => { return InterruptStatus(2, 0); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[2, 0]) Reset(); })
+
+                .WithFlag(7, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch1Int3",
+                    valueProviderCallback: _ => { return InterruptStatus(1, 3); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[1, 3]) Reset(); })
+                .WithFlag(6, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch1Int2",
+                    valueProviderCallback: _ => { return InterruptStatus(1, 2); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[1, 2]) Reset(); })
+                .WithFlag(5, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch1Int1",
+                    valueProviderCallback: _ => { return InterruptStatus(1, 1); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[1, 1]) Reset(); })
+                .WithFlag(4, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch1Int0",
+                    valueProviderCallback: _ => { return InterruptStatus(1, 0); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[1, 0]) Reset(); })
+
+                .WithFlag(3, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch0Int3",
+                   valueProviderCallback: _ => { return InterruptStatus(0, 3); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[0, 3]) Reset(); })
+                .WithFlag(2, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch0Int2",
+                    valueProviderCallback: _ => { return InterruptStatus(0, 2); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[0, 2]) Reset(); })
+                .WithFlag(1, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch0Int1",
+                    valueProviderCallback: _ => { return InterruptStatus(0, 1); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[0, 1]) Reset(); })
+                .WithFlag(0, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch0Int0",
+                    valueProviderCallback: _ => { return InterruptStatus(0, 0); },
+                    writeCallback: (_, value) => { if (ChannelN_InterruptM_St[0, 0]) Reset(); })
+                //TODO: do we need to call reset()? This will resest all timers, which we may not want to do
             ;
 
             //Channel/Timer Enable Register - 0x1C
@@ -645,7 +720,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 compare0Timer.CompareReached += () =>
                 {
                     Compare0Event = true;
-                    Console.WriteLine("InternalTimer compareReached");
+                    Console.WriteLine("InternalTimer Compare0Event reached");
                     CompareReached();
                 };
             }
@@ -727,6 +802,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 if(OneShot)
                 {
                     Value = 0;
+                    Console.WriteLine("InternalTimer compareReached");
                 }
             }
 
