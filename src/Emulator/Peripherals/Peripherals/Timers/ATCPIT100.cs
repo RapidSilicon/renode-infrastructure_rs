@@ -138,7 +138,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     case ChannelMode.Timer_32bit:
                         if (timerNum == 0){
                             ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
-                            internalTimers[channelNum, 0].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
+                            internalTimers[channelNum, 0].Enabled = enableValue;
                         }
                         else{
                             this.Log(LogLevel.Error, "Cannot enable timer0 when channel {0} is in {1} mode", 
@@ -720,15 +720,18 @@ namespace Antmicro.Renode.Peripherals.Timers
                 compare0Timer.CompareReached += () =>
                 {
                     Compare0Event = true;
-                    Console.WriteLine("InternalTimer Compare0Event reached");
+                    Console.WriteLine("InternalTimer Compare0Event reached\n");
                     CompareReached();
                 };
+
+                OneShot = true;
             }
 
             public void Reset()
             {
                 Enabled = false;
                 Compare0Event = false;
+                compare0Timer.Reset();
             }
 
             public bool Enabled
@@ -736,7 +739,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get => compare0Timer.Enabled;
                 set
                 {
-                    Console.WriteLine("Setting InternalTimer enabled to {0}", value);
+                    Console.WriteLine("Setting InternalTimer enabled to {0}\n", value);
                     if(Enabled == value)
                     {
                         return;
@@ -799,10 +802,13 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 OnCompare?.Invoke();
 
+                Console.WriteLine("ATCPIT100.cs: CompareReached: OneShot value {0}\n", OneShot);
+
                 if(OneShot)
                 {
                     Value = 0;
-                    Console.WriteLine("InternalTimer compareReached");
+                    Reset();
+                    Console.WriteLine("InternalTimer compareReached\n");
                 }
             }
 
