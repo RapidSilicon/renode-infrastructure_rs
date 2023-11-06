@@ -138,7 +138,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     case ChannelMode.Timer_32bit:
                         if (timerNum == 0){
                             ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
-                            internalTimers[channelNum, 0].Enabled = enableValue;
+                            internalTimers[channelNum, 0].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
                         }
                         else{
                             this.Log(LogLevel.Error, "Cannot enable timer0 when channel {0} is in {1} mode", 
@@ -731,7 +731,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 Enabled = false;
                 Compare0Event = false;
-                compare0Timer.Reset();
+                //compare0Timer.Reset();
             }
 
             public bool Enabled
