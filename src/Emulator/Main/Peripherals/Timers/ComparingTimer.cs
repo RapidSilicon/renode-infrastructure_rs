@@ -49,7 +49,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             this.owner = this is IPeripheral && owner == null ? this : owner;
             this.localName = localName;
             InternalReset();
-            this.Log(LogLevel.Info, "Creating ComparingTimers with freq: {0}, limit: 0x{1:X}, compare: {2}, clockSource: {3}, workMode: {4}", frequency, limit, compare, clockSource, workMode);
+            this.Log(LogLevel.Info, "Creating ComparingTimers with freq: {0}, limit: 0x{1:X}, compare: {2:X}, clockSource: {3}, workMode: {4}", frequency, limit, compare, clockSource, workMode);
         }
 
         protected ComparingTimer(IClockSource clockSource, long frequency, ulong limit = ulong.MaxValue, Direction direction = Direction.Ascending, bool enabled = false, WorkMode workMode = WorkMode.OneShot, bool eventEnabled = false, ulong compare = ulong.MaxValue, uint divider = 1, uint step = 1) 
