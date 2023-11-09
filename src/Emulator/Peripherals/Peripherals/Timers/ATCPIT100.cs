@@ -16,11 +16,12 @@ using System.Collections.ObjectModel;
 
 namespace Antmicro.Renode.Peripherals.Timers
 {
-    public class ATCPIT100 : BasicDoubleWordPeripheral, INumberedGPIOOutput, IKnownSize
+    public class ATCPIT100 : BasicDoubleWordPeripheral, IKnownSize
     {
         public ATCPIT100(Machine machine) : base(machine)
         {
             var innerConnections = new Dictionary<int, IGPIO>();
+            IRQ = new GPIO();
             internalTimers = new InternalTimer[channelCount, InternalTimersPerChannel];
 
             this.Log(LogLevel.Info, "clock source: {0}", machine.ClockSource);
@@ -39,13 +40,14 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 innerConnections[i] = new GPIO();
             }
-            
-            Connections = new ReadOnlyDictionary<int, IGPIO>(innerConnections);
+                 
 
             DefineRegisters();
             ResetReloadRegs();
             Reset();
         }
+
+        public GPIO IRQ { get; set; }
 
         private ulong getLimit(int timerNum){
             switch(timerNum){
@@ -77,14 +79,9 @@ namespace Antmicro.Renode.Peripherals.Timers
                     internalTimers[i, j].Reset();
                 }
             }
-
-            for(var i = 0; i < channelCount * InternalTimersPerChannel; ++i)
-            {
-                Connections[i].Unset();
-            }
+            IRQ.Unset();
         }
 
-        public IReadOnlyDictionary<int, IGPIO> Connections { get; }
 
         private void ResetReloadRegs(){
             for (var i = 0; i < channelCount; i++){
@@ -100,100 +97,91 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
         }
 
-        private void UpdateTimerActiveStatus()
-        {
-            for(var i = 0; i < channelCount; ++i)
-            {
-                for(var j = 0; j < TimersPerChannel; ++j)
-                {
-                    internalTimers[i, j].Enabled = ChannelN_InterruptM_En[i, j];
-                }
-            }
-
-            RequestReturnOnAllCPUs();
-        }
-
         private void UpdateInterrupts()
         {
-            for(var i = 0; i < channelCount; ++i){
-                for(var j = 0; j < InternalTimersPerChannel; ++j){
-                    var k = i + j; //TODO: does this make sense?
+            for(var i = 0; i < channelCount; i++){
+                for(var j = 0; j < TimersPerChannel; j++){
                     var interrupt = false;
-                    interrupt |= internalTimers[i, j].Compare0Event && internalTimers[i, j].Compare0Interrupt;
-                    if(Connections[k].IsSet != interrupt)
+                    interrupt |= (ChannelN_InterruptM_St[i, j] && ChannelN_InterruptM_En[i, j]);
+
+                    if(IRQ.IsSet != interrupt)
                     {
-                        this.InfoLog("Changing Interrupt{0} from {1} to {2}", i, Connections[k].IsSet, interrupt);
+                        this.InfoLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
+                        this.InfoLog("ChannelN_InterruptM_St = {0}, ChannelN_InterruptM_En = {1}", ChannelN_InterruptM_St[i, j], ChannelN_InterruptM_En[i, j]);
                     }
-                    Connections[k].Set(interrupt);
+                    IRQ.Set(interrupt);
                 }
             }
         }        
 
         private void TimerEnable(int channelNum, int timerNum, bool enableValue){
-            if (enableValue == false){
-                ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
+            switch (ChannelN_Control_ChMode[channelNum]){
+                case ChannelMode.Timer_32bit:
+                    if (timerNum == 0){
+                        ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
+                        internalTimers[channelNum, timerNum].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
+                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                            channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                            timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.Timer_16bit:
+                    if ((timerNum == 0) || (timerNum == 1)){
+                        ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
+                        internalTimers[channelNum, timerNum + 1].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
+                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                            channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                            timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.Timer_8bit:
+                    if ((timerNum >= 0) && (timerNum <= 3)){
+                        ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
+                        internalTimers[channelNum, timerNum + 3].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
+                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                            channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                            timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.PWM:
+                    //TODO: Set PWM enable value
+                    break;
+                case ChannelMode.PWM_Timer_16bit:
+                    //TODO: Set PWM enable value
+                    if (timerNum == 0){
+                        ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
+                        internalTimers[channelNum, 0].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
+                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                            channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                            timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.PWM_Timer_8bit:
+                    //TODO: Set PWM enable value
+                    if ((timerNum == 0) || (timerNum == 1)){
+                        ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
+                        internalTimers[channelNum, timerNum + 1].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
+                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                            channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                            timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
             }
-            else{
-                switch (ChannelN_Control_ChMode[channelNum]){
-                    case ChannelMode.Timer_32bit:
-                        if (timerNum == 0){
-                            ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
-                            internalTimers[channelNum, 0].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable timer0 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.Timer_16bit:
-                        if ((timerNum == 0) || (timerNum == 1)){
-                            ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
-                            internalTimers[channelNum, timerNum + 1].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable timers 0 & 1 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.Timer_8bit:
-                        if ((timerNum >= 0) && (timerNum <= 3)){
-                            ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
-                            internalTimers[channelNum, timerNum + 3].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable timers 0 - 3 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.PWM:
-                        //TODO: Set PWM enable value
-                        break;
-                    case ChannelMode.PWM_Timer_16bit:
-                        //TODO: Set PWM enable value
-                        if (timerNum == 0){
-                            ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
-                            internalTimers[channelNum, 0].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable timer0 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.PWM_Timer_8bit:
-                        //TODO: Set PWM enable value
-                        if ((timerNum == 0) || (timerNum == 1)){
-                            ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
-                            internalTimers[channelNum, timerNum + 1].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable timers 0 & 1 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                }
-            }
-            this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
-                channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
             RequestReturnOnAllCPUs();
         }
 
@@ -202,8 +190,8 @@ namespace Antmicro.Renode.Peripherals.Timers
             bool returnVal = false;
             switch (ChannelN_Control_ChMode[channelNum]){
                 case ChannelMode.Timer_32bit:
-                    ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Enabled;
-                    returnVal = ChannelN_TimerM_En[channelNum, 0];
+                    ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum].Enabled;
+                    returnVal = ChannelN_TimerM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.Timer_16bit:
                     ChannelN_TimerM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Enabled;
@@ -292,76 +280,70 @@ namespace Antmicro.Renode.Peripherals.Timers
         } //TODO
 
         private void InterruptEnable(int channelNum, int timerNum, bool interruptValue){
-            if (interruptValue == false){
-                ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
-            }
-            else{
-                switch (ChannelN_Control_ChMode[channelNum]){
-                    case ChannelMode.Timer_32bit:
-                        if (timerNum == 0){
-                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
-                            internalTimers[channelNum, 0].Compare0Interrupt = ChannelN_InterruptM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable interrupt of timer0 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.Timer_16bit:
-                        if ((timerNum == 0) || (timerNum == 1)){
-                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
-                            internalTimers[channelNum, timerNum + 1].Compare0Interrupt = ChannelN_InterruptM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable interrupt of timers 0 & 1 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.Timer_8bit:
-                        if ((timerNum >= 0) && (timerNum <= 3)){
-                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
-                            internalTimers[channelNum, timerNum + 3].Compare0Interrupt = ChannelN_InterruptM_En[channelNum, timerNum];
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable interrupt of timers 0 - 3 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.PWM:
-                        //TODO: Set PWM interrupt value
-                        break;
-                    case ChannelMode.PWM_Timer_16bit:
-                        //TODO: Set PWM interrupt value
-                        if (timerNum == 0){
-                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable interrupt of timer0 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                    case ChannelMode.PWM_Timer_8bit:
-                        //TODO: Set PWM interrupt value
-                        if ((timerNum == 0) || (timerNum == 1)){
-                            ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
-                        }
-                        else{
-                            this.Log(LogLevel.Error, "Cannot enable interrupt of timers 0 & 1 when channel {0} is in {1} mode", 
-                                channelNum, ChannelN_Control_ChMode[channelNum]);
-                        }
-                        break;
-                }
+            switch (ChannelN_Control_ChMode[channelNum]){
+                case ChannelMode.Timer_32bit:
+                    if (timerNum == 0){
+                        ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        internalTimers[channelNum, timerNum].Compare0Interrupt = ChannelN_InterruptM_En[channelNum, timerNum];
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable interrupt of timer0 when channel {0} is in {1} mode", 
+                            channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.Timer_16bit:
+                    if ((timerNum == 0) || (timerNum == 1)){
+                        ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        internalTimers[channelNum, timerNum + 1].Compare0Interrupt = ChannelN_InterruptM_En[channelNum, timerNum];
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable interrupt of timers 0 & 1 when channel {0} is in {1} mode", 
+                            channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.Timer_8bit:
+                    if ((timerNum >= 0) && (timerNum <= 3)){
+                        ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                        internalTimers[channelNum, timerNum + 3].Compare0Interrupt = ChannelN_InterruptM_En[channelNum, timerNum];
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable interrupt of timers 0 - 3 when channel {0} is in {1} mode", 
+                            channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.PWM:
+                    //TODO: Set PWM interrupt value
+                    break;
+                case ChannelMode.PWM_Timer_16bit:
+                    //TODO: Set PWM interrupt value
+                    if (timerNum == 0){
+                        ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable interrupt of timer0 when channel {0} is in {1} mode", 
+                            channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
+                case ChannelMode.PWM_Timer_8bit:
+                    //TODO: Set PWM interrupt value
+                    if ((timerNum == 0) || (timerNum == 1)){
+                        ChannelN_InterruptM_En[channelNum, timerNum] = interruptValue;
+                    }
+                    else{
+                        this.Log(LogLevel.Error, "Cannot enable interrupt of timers 0 & 1 when channel {0} is in {1} mode", 
+                            channelNum, ChannelN_Control_ChMode[channelNum]);
+                    }
+                    break;
             }
             this.InfoLog("setting ch{0} timer{1}'s interrupt value to {2} with channel mode {3}", 
                 channelNum, timerNum, interruptValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
-            //sendInterruptEnablesToTimers();
         }
 
         private bool InterruptEnableReturn(int channelNum, int timerNum){
             bool returnVal = false;
             switch (ChannelN_Control_ChMode[channelNum]){
                 case ChannelMode.Timer_32bit:
-                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Compare0Interrupt;
+                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum].Compare0Interrupt;
                     returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.Timer_16bit:
@@ -378,7 +360,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     break;
                 case ChannelMode.PWM_Timer_16bit:
                     //TODO: Set PWM interrupt value
-                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, 0].Compare0Interrupt;
+                    ChannelN_InterruptM_En[channelNum, timerNum] = internalTimers[channelNum, timerNum].Compare0Interrupt;
                     returnVal = ChannelN_InterruptM_En[channelNum, timerNum];
                     break;
                 case ChannelMode.PWM_Timer_8bit:
@@ -395,25 +377,26 @@ namespace Antmicro.Renode.Peripherals.Timers
         }
 
         private void InterruptStatus(int channelNum, int timerNum, bool value){
-            //Console.WriteLine("intstatus() value: {0}" , value);
+            //value is inverted by W1C control in register before function call
+            Console.WriteLine("intstatus() value: {0}" , value);
             switch (ChannelN_Control_ChMode[channelNum]){
                 case ChannelMode.Timer_32bit:
                     if (timerNum == 0) {
-                        ChannelN_InterruptM_St[channelNum, 0] = internalTimers[channelNum, 0].Compare0Event;
-                        if (!value) internalTimers[channelNum, timerNum].Reset();
+                        ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum].Compare0Event;
+                        if (!value) { internalTimers[channelNum, timerNum].Compare0Event = false; }
                     }
                     break;
                 case ChannelMode.Timer_16bit:
                     if ((timerNum == 0) || (timerNum == 1)){
                         ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Compare0Event;
-                        if (!value) internalTimers[channelNum, timerNum + 1].Reset();
+                        if (!value) { internalTimers[channelNum, timerNum + 1].Compare0Event = false; }
                     }
                     break;
 
                 case ChannelMode.Timer_8bit:
                     if ((timerNum >= 0) && (timerNum <= 3)){
                         ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Compare0Event;
-                        if (!value) internalTimers[channelNum, timerNum + 3].Reset();
+                        if (!value) { internalTimers[channelNum, timerNum + 3].Compare0Event = false; }
                     }
                     break;
             }
@@ -426,8 +409,9 @@ namespace Antmicro.Renode.Peripherals.Timers
             switch (ChannelN_Control_ChMode[channelNum]){
                 case ChannelMode.Timer_32bit:
                     if (timerNum == 0) {
-                        ChannelN_InterruptM_St[channelNum, 0] = internalTimers[channelNum, 0].Compare0Event;
-                        returnvalue = ChannelN_InterruptM_St[channelNum, 0];
+                        this.InfoLog("internalTimers[{0}, {1}].Compare0Event = {2}", channelNum, timerNum, internalTimers[channelNum, timerNum].Compare0Event);
+                        ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum].Compare0Event;
+                        returnvalue = ChannelN_InterruptM_St[channelNum, timerNum];
                     }
                     break;
                 case ChannelMode.Timer_16bit:
@@ -572,7 +556,6 @@ namespace Antmicro.Renode.Peripherals.Timers
                 .WithFlag(0, FieldMode.Read | FieldMode.WriteOneToClear, name: "Ch0Int0",
                     changeCallback: (_, value) => InterruptStatus(0, 0, value),
                     valueProviderCallback: _ => { return InterruptStatusReturn(0, 0); })
-                //TODO: do we need to call reset()? This will resest all timers, which we may not want to do
             ;
 
             //Channel/Timer Enable Register - 0x1C
@@ -619,16 +602,16 @@ namespace Antmicro.Renode.Peripherals.Timers
 
                 .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch0TMR3En/CH0PWMEn",
                     changeCallback: (_, value) =>   { TimerEnable(0, 3, (bool)value); },
-                    valueProviderCallback: _    =>  { return TimerEnableReturn(0, 3); } )
+                    valueProviderCallback: _   =>   { return TimerEnableReturn(0, 3); } )
                 .WithFlag(2, FieldMode.Read | FieldMode.Write, name: "Ch0TMR2En",
                     changeCallback: (_, value) =>   { TimerEnable(0, 2, (bool)value); },
-                    valueProviderCallback: _    =>  { return TimerEnableReturn(0, 2); } )
+                    valueProviderCallback: _   =>   { return TimerEnableReturn(0, 2); } )
                 .WithFlag(1, FieldMode.Read | FieldMode.Write, name: "Ch0TMR1En",
                     changeCallback: (_, value) =>   { TimerEnable(0, 1, (bool)value); },
-                    valueProviderCallback: _    =>  { return TimerEnableReturn(0, 1); } )
+                    valueProviderCallback: _   =>   { return TimerEnableReturn(0, 1); } )
                 .WithFlag(0, FieldMode.Read | FieldMode.Write, name: "Ch0TMR0En",
                     changeCallback: (_, value) =>   { TimerEnable(0, 0, (bool)value); },
-                    valueProviderCallback: _    =>  { return TimerEnableReturn(0, 0); } )
+                    valueProviderCallback: _   =>   { return TimerEnableReturn(0, 0); } )
             ;
 
             //Channel 0 Control Register
@@ -747,7 +730,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 compare0Timer.CompareReached += () =>
                 {
                     Compare0Event = true;
-                    Console.WriteLine("InternalTimer channel {0} timer {1} Compare0Event reached with value {0}", chnum, index, Compare0Event);
+                    //Console.WriteLine("InternalTimer channel {0} timer {1} Compare0Event reached with value {0}", chnum, index, Compare0Event);
                     CompareReached();
                 };
 
@@ -758,7 +741,6 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 Enabled = false;
                 Compare0Event = false;
-                //compare0Timer.Reset();
             }
 
             public bool Enabled
@@ -829,13 +811,12 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 OnCompare?.Invoke();
 
-                Console.WriteLine("ATCPIT100.cs: CompareReached: OneShot value {0}\n", OneShot);
+                //Console.WriteLine("ATCPIT100.cs: CompareReached: OneShot value {0}\n", OneShot);
 
                 if(OneShot)
                 {
                     Value = 0;
-                    //Enabled = false;
-                    Console.WriteLine("InternalTimer compareReached\n");
+                    //Console.WriteLine("InternalTimer compareReached\n");
                 }
             }
 
