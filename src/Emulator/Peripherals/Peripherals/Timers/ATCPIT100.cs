@@ -99,19 +99,19 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         private void UpdateInterrupts()
         {
+            var interrupt = false;
             for(var i = 0; i < channelCount; i++){
-                for(var j = 0; j < TimersPerChannel; j++){
-                    var interrupt = false;
+                for(var j = 0; j < TimersPerChannel; j++){          
                     interrupt |= (ChannelN_InterruptM_St[i, j] && ChannelN_InterruptM_En[i, j]);
 
                     if(IRQ.IsSet != interrupt)
                     {
                         this.InfoLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
-                        this.InfoLog("ChannelN_InterruptM_St = {0}, ChannelN_InterruptM_En = {1}", ChannelN_InterruptM_St[i, j], ChannelN_InterruptM_En[i, j]);
+                        //this.InfoLog("ChannelN_InterruptM_St = {0}, ChannelN_InterruptM_En = {1} i = {2}, j = {3}", ChannelN_InterruptM_St[i, j], ChannelN_InterruptM_En[i, j], i, j);
                     }
-                    IRQ.Set(interrupt);
                 }
             }
+            IRQ.Set(interrupt);
         }        
 
         private void TimerEnable(int channelNum, int timerNum, bool enableValue){
@@ -379,28 +379,29 @@ namespace Antmicro.Renode.Peripherals.Timers
         private void InterruptStatus(int channelNum, int timerNum, bool value){
             //value is inverted by W1C control in register before function call
             Console.WriteLine("intstatus() value: {0}" , value);
-            switch (ChannelN_Control_ChMode[channelNum]){
-                case ChannelMode.Timer_32bit:
-                    if (timerNum == 0) {
-                        ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum].Compare0Event;
-                        if (!value) { internalTimers[channelNum, timerNum].Compare0Event = false; }
-                    }
-                    break;
-                case ChannelMode.Timer_16bit:
-                    if ((timerNum == 0) || (timerNum == 1)){
-                        ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum + 1].Compare0Event;
-                        if (!value) { internalTimers[channelNum, timerNum + 1].Compare0Event = false; }
-                    }
-                    break;
+            if (!value){
+                switch (ChannelN_Control_ChMode[channelNum]){
+                    case ChannelMode.Timer_32bit:
+                        if (timerNum == 0) {
+                            ChannelN_InterruptM_St[channelNum, timerNum]  = value;
+                            internalTimers[channelNum, timerNum].Compare0Event = ChannelN_InterruptM_St[channelNum, timerNum]; 
+                        }
+                        break;
+                    case ChannelMode.Timer_16bit:
+                        if ((timerNum == 0) || (timerNum == 1)){
+                            ChannelN_InterruptM_St[channelNum, timerNum]  = value;
+                            internalTimers[channelNum, timerNum + 1].Compare0Event = ChannelN_InterruptM_St[channelNum, timerNum]; 
+                        }
+                        break;
 
-                case ChannelMode.Timer_8bit:
-                    if ((timerNum >= 0) && (timerNum <= 3)){
-                        ChannelN_InterruptM_St[channelNum, timerNum] = internalTimers[channelNum, timerNum + 3].Compare0Event;
-                        if (!value) { internalTimers[channelNum, timerNum + 3].Compare0Event = false; }
-                    }
-                    break;
+                    case ChannelMode.Timer_8bit:
+                        if ((timerNum >= 0) && (timerNum <= 3)){
+                            ChannelN_InterruptM_St[channelNum, timerNum]  = value;
+                            internalTimers[channelNum, timerNum + 3].Compare0Event = ChannelN_InterruptM_St[channelNum, timerNum]; 
+                        }
+                        break;
+                }
             }
-
 
         }
 
