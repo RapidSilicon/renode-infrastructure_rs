@@ -90,22 +90,24 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
         }
 
-        bool interrupt = false;
+        
         private void UpdateInterrupts()
         {
+            bool interrupt = false;
             for(var i = 0; i < channelCount; i++){
                 for(var j = 0; j < TimersPerChannel; j++){
                     ChannelN_InterruptM_St[i,j] = InterruptStatusReturn(i, j);
-                    if ((i == 0) && (j == 0)) this.InfoLog("ChannelN_InterruptM_St = {0}, ChannelN_InterruptM_En = {1} i = {2}, j = {3}", ChannelN_InterruptM_St[i, j], ChannelN_InterruptM_En[i, j], i, j);          
-                    interrupt |= (ChannelN_InterruptM_St[i, j] && ChannelN_InterruptM_En[i, j]);
-                    if (AreAllIntStatusZero()) interrupt = false;
-                    
+                    //if ((i == 0) && (j <= 1)) this.InfoLog("ChannelN_InterruptM_St = {0}, ChannelN_InterruptM_En = {1} i = {2}, j = {3}", ChannelN_InterruptM_St[i, j], ChannelN_InterruptM_En[i, j], i, j);          
+                    interrupt |= (ChannelN_InterruptM_St[i, j] && ChannelN_InterruptM_En[i, j]);                   
+                    if (interrupt) break;
                 }
+                if (interrupt) break;
             }
+            //if (AreAllIntStatusZero()) interrupt = false;
             if(IRQ.IsSet != interrupt)
-                    {
-                        this.InfoLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
-                    }
+            {
+                this.InfoLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
+            }
             
             IRQ.Set(interrupt);
         }        
@@ -118,6 +120,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     }
                 }
             }
+            //this.InfoLog("AreAllIntStatusZero = true");
             return true;
 
         }
@@ -128,7 +131,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     if (timerNum == 0){
                         ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
                         internalTimers[channelNum, timerNum].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                        this.InfoLog("Enabling/disabling ch{0} timer{1} with value {2}, channel mode {3}", 
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
@@ -140,7 +143,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     if ((timerNum == 0) || (timerNum == 1)){
                         ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
                         internalTimers[channelNum, timerNum + 1].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                        this.InfoLog("Enabling/disabling ch{0} timer{1} with value {2}, channel mode {3}", 
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
@@ -152,7 +155,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     if ((timerNum >= 0) && (timerNum <= 3)){
                         ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
                         internalTimers[channelNum, timerNum + 3].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                        this.InfoLog("Enabling/disabling ch{0} timer{1} with value {2}, channel mode {3}", 
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
@@ -168,7 +171,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     if (timerNum == 0){
                         ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
                         internalTimers[channelNum, 0].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                        this.InfoLog("Enabling/disabling ch{0} timer{1} with value {2}, channel mode {3}", 
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
@@ -181,7 +184,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     if ((timerNum == 0) || (timerNum == 1)){
                         ChannelN_TimerM_En[channelNum, timerNum] = enableValue;
                         internalTimers[channelNum, timerNum + 1].Enabled = ChannelN_TimerM_En[channelNum, timerNum];
-                        this.InfoLog("Enabling/disabling ch{0} timer{1}'s with value {2}, channel mode {3}", 
+                        this.InfoLog("Enabling/disabling ch{0} timer{1} with value {2}, channel mode {3}", 
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
@@ -382,7 +385,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     returnVal = false;
                     break;
             }
-            UpdateInterrupts();
+            //UpdateInterrupts();
             return returnVal;
         }
 
@@ -655,14 +658,14 @@ namespace Antmicro.Renode.Peripherals.Timers
 
             //Channel 0 Reload Register
             Registers.Ch0Reload.Define(this)
-                .WithValueField(0, 31, FieldMode.Read | FieldMode.Write, name: "TMR32_0", 
+                .WithValueField(0, 32, FieldMode.Read | FieldMode.Write, name: "TMR32_0", 
                     changeCallback: (_, newValue) => ReloadRegister(0, newValue),
                     valueProviderCallback: _ => { return ReloadRegisterReturn(0); } )
             ;                
 
             //Channel 0 Counter Register
             Registers.Ch0Cntr.Define(this) //Channel 0 Counter Register
-                .WithValueField(0, 31, FieldMode.Read, name: "TMR32_0", 
+                .WithValueField(0, 32, FieldMode.Read, name: "TMR32_0", 
                 valueProviderCallback: _ => { return CounterRegisterReturn(0); } )
             ;
 
