@@ -664,18 +664,44 @@ namespace Antmicro.Renode.Peripherals.Timers
             ;                
 
             //Channel 0 Counter Register
-            Registers.Ch0Cntr.Define(this) //Channel 0 Counter Register
+            Registers.Ch0Cntr.Define(this)
                 .WithValueField(0, 32, FieldMode.Read, name: "TMR32_0", 
                 valueProviderCallback: _ => { return CounterRegisterReturn(0); } )
             ;
 
             //Channel 1 Control Register
-            Registers.Ch1Ctrl.Define(this) 
+            Registers.Ch1Ctrl.Define(this)
+                .WithReservedBits(5,27)
+                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch1PwmPark",
+                    changeCallback: (_, value) => { ChannelN_Control_PWM_Park[1] = (bool)value; },
+                    valueProviderCallback: _ => { return ChannelN_Control_PWM_Park[1]; } )
+
+                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch1clk",
+                    changeCallback: (_, value) => { ChannelN_Control_ChClk[1] = (bool)value; },
+                    valueProviderCallback: _ => { return ChannelN_Control_ChClk[1]; } )
+
+                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch1Mode", 
+                    changeCallback: (_, value) => 
+                    { 
+                        if (Enum.IsDefined(typeof(ChannelMode), (ushort)value))
+                        {
+                            ChannelN_Control_ChMode[1] = (ChannelMode)(ushort)value;
+                            this.InfoLog("Setting channel 1 mode to {0}", (ChannelMode)(ushort)value);
+                        }
+                        else
+                        {
+                            this.Log(LogLevel.Error, "Channel 1: unknown channel mode");
+                        }
+                    },
+                    valueProviderCallback: _ => { return (ulong)ChannelN_Control_ChMode[1]; } )
 
             ;
 
             //Channel 1 Reload
             Registers.Ch1Reload.Define(this)
+                .WithValueField(0, 32, FieldMode.Read | FieldMode.Write, name: "TMR32_1", 
+                    changeCallback: (_, newValue) => ReloadRegister(1, newValue),
+                    valueProviderCallback: _ => { return ReloadRegisterReturn(1); } )
 
             ;  
 
@@ -686,11 +712,37 @@ namespace Antmicro.Renode.Peripherals.Timers
 
             //Channel 2 Control Register
             Registers.Ch2Ctrl.Define(this)
+                .WithReservedBits(5,27)
+                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch2PwmPark",
+                    changeCallback: (_, value) => { ChannelN_Control_PWM_Park[2] = (bool)value; },
+                    valueProviderCallback: _ => { return ChannelN_Control_PWM_Park[2]; } )
+
+                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch2clk",
+                    changeCallback: (_, value) => { ChannelN_Control_ChClk[2] = (bool)value; },
+                    valueProviderCallback: _ => { return ChannelN_Control_ChClk[2]; } )
+
+                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch2Mode", 
+                    changeCallback: (_, value) => 
+                    { 
+                        if (Enum.IsDefined(typeof(ChannelMode), (ushort)value))
+                        {
+                            ChannelN_Control_ChMode[2] = (ChannelMode)(ushort)value;
+                            this.InfoLog("Setting channel 2 mode to {0}", (ChannelMode)(ushort)value);
+                        }
+                        else
+                        {
+                            this.Log(LogLevel.Error, "Channel 2: unknown channel mode");
+                        }
+                    },
+                    valueProviderCallback: _ => { return (ulong)ChannelN_Control_ChMode[2]; } )
              
             ;
 
             //Channel 2 Reload Register
-            Registers.Ch2Reload.Define(this) 
+            Registers.Ch2Reload.Define(this)
+                .WithValueField(0, 32, FieldMode.Read | FieldMode.Write, name: "TMR32_0", 
+                    changeCallback: (_, newValue) => ReloadRegister(2, newValue),
+                    valueProviderCallback: _ => { return ReloadRegisterReturn(2); } )
                 
             ;
 
@@ -701,11 +753,36 @@ namespace Antmicro.Renode.Peripherals.Timers
 
             //Channel 3 Control Register
             Registers.Ch3Ctrl.Define(this)
-            
+                .WithReservedBits(5,27)
+                .WithFlag(4, FieldMode.Read | FieldMode.Write, name: "Ch3PwmPark",
+                    changeCallback: (_, value) => { ChannelN_Control_PWM_Park[3] = (bool)value; },
+                    valueProviderCallback: _ => { return ChannelN_Control_PWM_Park[3]; } )
+
+                .WithFlag(3, FieldMode.Read | FieldMode.Write, name: "Ch3clk",
+                    changeCallback: (_, value) => { ChannelN_Control_ChClk[3] = (bool)value; },
+                    valueProviderCallback: _ => { return ChannelN_Control_ChClk[3]; } )
+
+                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch3Mode", 
+                    changeCallback: (_, value) => 
+                    { 
+                        if (Enum.IsDefined(typeof(ChannelMode), (ushort)value))
+                        {
+                            ChannelN_Control_ChMode[3] = (ChannelMode)(ushort)value;
+                            this.InfoLog("Setting channel 3 mode to {0}", (ChannelMode)(ushort)value);
+                        }
+                        else
+                        {
+                            this.Log(LogLevel.Error, "Channel 3: unknown channel mode");
+                        }
+                    },
+                    valueProviderCallback: _ => { return (ulong)ChannelN_Control_ChMode[3]; } )
             ;
 
             //Channel 3 Reload Register
             Registers.Ch3Reload.Define(this)
+                .WithValueField(0, 32, FieldMode.Read | FieldMode.Write, name: "TMR32_3", 
+                    changeCallback: (_, newValue) => ReloadRegister(3, newValue),
+                    valueProviderCallback: _ => { return ReloadRegisterReturn(3); } )
                 
             ;
 
