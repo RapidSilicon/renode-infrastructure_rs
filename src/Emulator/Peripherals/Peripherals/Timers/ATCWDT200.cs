@@ -13,11 +13,11 @@ namespace Antmicro.Renode.Peripherals.Timers
 {
     public class ATCWDT200 : BasicDoubleWordPeripheral, IKnownSize
     {
-        public ATCWDT200(Machine machine, MAX32650_GCR gcr) : base(machine)
+        public ATCWDT200(Machine machine, long frequency ) : base(machine)
         {
             IRQ = new GPIO();
 
-            interruptTimer = new LimitTimer(machine.ClockSource, gcr.SysClk / 2, this, "interrupt_timer", InitialLimit, eventEnabled: true);
+            interruptTimer = new LimitTimer(machine.ClockSource, frequency , this, "interrupt_timer", InitialLimit, eventEnabled: true);
             interruptTimer.LimitReached += () =>
             {
                 interruptPending.Value = true;
