@@ -149,8 +149,8 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         private enum Registers
         {
-            Control = 0x00,
-            Reset = 0x04,
+            Control = 0x10,
+            Reset = 0x14,
         }
     }
 }
