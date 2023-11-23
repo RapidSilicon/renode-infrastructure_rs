@@ -382,7 +382,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     returnVal = false;
                     break;
             }
-            UpdateInterrupts();
+            //UpdateInterrupts();
             return returnVal;
         }
 
@@ -412,7 +412,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                         break;
                 }
             }
-            UpdateInterrupts();
+           UpdateInterrupts();
         }
 
         private bool InterruptStatusReturn(int channelNum, int timerNum){
