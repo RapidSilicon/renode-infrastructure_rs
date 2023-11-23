@@ -23,7 +23,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             IRQ = new GPIO();
             internalTimers = new InternalTimer[channelCount, InternalTimersPerChannel];
 
-            this.Log(LogLevel.Info, "clock source: {0}", machine.ClockSource);
+            this.Log(LogLevel.Info , "clock source: {0}", machine.ClockSource);
 
             for(var i = 0; i < channelCount; ++i)
             {

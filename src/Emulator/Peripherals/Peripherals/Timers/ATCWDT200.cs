@@ -13,7 +13,7 @@ namespace Antmicro.Renode.Peripherals.Timers
 {
     public class ATCWDT200 : BasicDoubleWordPeripheral, IKnownSize
     {
-        public ATCWDT200(Machine machine, long frequency ) : base(machine)
+        public ATCWDT200( Machine machine, long frequency ) : base(machine)
         {
             IRQ = new GPIO();
 
