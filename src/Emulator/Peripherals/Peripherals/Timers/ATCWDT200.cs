@@ -45,11 +45,11 @@ namespace Antmicro.Renode.Peripherals.Timers
             DefineRegisters();
         }
 
-        public override void Reset()
+        public override void Restart()
         {
-            base.Reset();
-            interruptTimer.Reset();
-            resetTimer.Reset();
+            base.Restart();
+            interruptTimer.Restart();
+            resetTimer.Restart();
             IRQ.Unset();
 
             resetSequence = ResetSequence.WaitForFirstByte;
@@ -106,8 +106,8 @@ namespace Antmicro.Renode.Peripherals.Timers
                     writeCallback: (_, value) => systemReset = value)
             ;
 
-            Registers.Reset.Define(this)
-                .WithValueField(0, 8, name: "RST.wdt_rst",
+            Registers.Restart.Define(this)
+                .WithValueField(0, 16, name: "RST.wdt_rst",
                     writeCallback: (_, value) =>
                     {
                         if(resetSequence == ResetSequence.WaitForFirstByte && value == FirstResetByte)
@@ -125,7 +125,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                             resetSequence = ResetSequence.WaitForFirstByte;
                         }
                     })
-                .WithReservedBits(8, 24)
+                .WithReservedBits(16, 16)
             ;
         }
 
@@ -150,7 +150,9 @@ namespace Antmicro.Renode.Peripherals.Timers
         private enum Registers
         {
             Control = 0x10,
-            Reset = 0x14,
+            Restart = 0x14,
+            Write_Enable = 0x18,
+            Status = 0x1C,
         }
     }
 }
