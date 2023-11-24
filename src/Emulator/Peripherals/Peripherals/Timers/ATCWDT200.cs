@@ -72,38 +72,43 @@ namespace Antmicro.Renode.Peripherals.Timers
         private void DefineRegisters()
         {
             Registers.Control.Define(this)
-                .WithValueField(0, 4, name: "CTRL.int_period",
-                    changeCallback: (_, value) =>
-                    {
-                        interruptTimer.Limit = 1UL << (31 - (int)value);
-                    })
-                .WithValueField(4, 4, name: "CTRL.rst_period",
-                    changeCallback: (_, value) =>
-                    {
-                        resetTimer.Limit = 1UL << (31 - (int)value);
-                    })
-                .WithFlag(8, name: "CTRL.wdt_en",
+                 .WithFlag(0, name: "CTRL.wdt_en",
                     writeCallback: (_, value) =>
                     {
                         interruptTimer.Enabled = value;
                         resetTimer.Enabled = value;
                     })
-                .WithFlag(9, out interruptPending, FieldMode.WriteOneToClear, name: "CTRL.int_flag",
-                    writeCallback: (_, __) => UpdateInterrupts())
-                .WithFlag(10, name: "CTRL.int_en",
+
+                .WithFlag(1, name: "CTRL.clk_set",
+                    valueProviderCallback: _ => systemReset,
+                    writeCallback: (_, value) => systemReset = value)
+
+
+                    .WithFlag(2, name: "CTRL.int_en",
                     valueProviderCallback: _ => interruptTimer.EventEnabled,
                     writeCallback: (_, value) =>
                     {
                         interruptTimer.EventEnabled = value;
                         UpdateInterrupts();
                     })
-                .WithFlag(11, name: "CTRL.rst_en",
+
+                    .WithFlag(3, name: "CTRL.rst_en",
                     valueProviderCallback: _ => resetTimer.EventEnabled,
                     changeCallback: (_, value) => resetTimer.EventEnabled = value)
-                .WithReservedBits(12, 19)
-                .WithFlag(31, name: "CTRL.rst_flag",
-                    valueProviderCallback: _ => systemReset,
-                    writeCallback: (_, value) => systemReset = value)
+
+                   .WithValueField(4, 4, name: "CTRL.int_period",
+                    changeCallback: (_, value) =>
+                    {
+                        interruptTimer.Limit = 1UL << (31 - (int)value);
+                    })
+
+                    .WithValueField(8, 3, name: "CTRL.rst_period",
+                    changeCallback: (_, value) =>
+                    {
+                        resetTimer.Limit = 1UL << (31 - (int)value);
+                    })
+               
+                    .WithReservedBits(11, 21)
             ;
 
             Registers.Restart.Define(this)
@@ -127,6 +132,17 @@ namespace Antmicro.Renode.Peripherals.Timers
                     })
                 .WithReservedBits(16, 16)
             ;
+
+             Registers.Write_Enable.Define(this)
+             
+              .WithValueField(0, 16, name: "WEn",
+                    changeCallback: (_, value) =>
+                    {
+                       
+                    })
+              .WithReservedBits(16, 16)
+             ;
+             
         }
 
         private ResetSequence resetSequence;
