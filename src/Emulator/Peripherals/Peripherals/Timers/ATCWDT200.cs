@@ -142,6 +142,14 @@ namespace Antmicro.Renode.Peripherals.Timers
                     })
               .WithReservedBits(16, 16)
              ;
+
+             Registers.Status.Define(this)
+                 .WithFlag(0, name: "IntExpired",
+                    valueProviderCallback: _ => ,
+                    changeCallback: (_, value) =>   )
+              
+              .WithReservedBits(1, 31)
+             ;
              
         }
 
@@ -156,6 +164,10 @@ namespace Antmicro.Renode.Peripherals.Timers
         private const ulong InitialLimit = (1UL << 31);
         private const byte FirstResetByte = 0xA5;
         private const byte SecondResetByte = 0x5A;
+
+          private const ushort WP_NUM = 0x5AA5;
+
+          private const ushort RESTART_NUM = 0xCAFE;
 
         private enum ResetSequence
         {
