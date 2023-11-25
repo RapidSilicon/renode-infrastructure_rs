@@ -4,9 +4,15 @@
 // This file is licensed under the MIT License.
 // Full license text is available in 'licenses/MIT.txt'.
 //
-using System;
 using Antmicro.Renode.Core;
+using Antmicro.Renode.Peripherals.CPU;
 using Antmicro.Renode.Core.Structure.Registers;
+using Antmicro.Renode.Logging;
+using Antmicro.Renode.Time;
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Antmicro.Renode.Peripherals.Miscellaneous;
 
 namespace Antmicro.Renode.Peripherals.Timers
@@ -36,20 +42,16 @@ namespace Antmicro.Renode.Peripherals.Timers
                 machine.RequestReset();
             };
 
-            gcr.SysClkChanged += (newFrequency) =>
-            {
-                interruptTimer.Frequency = newFrequency / 2;
-                resetTimer.Frequency = newFrequency / 2;
-            };
+           
 
             DefineRegisters();
         }
 
-        public override void Restart()
+        public override void Reset()
         {
-            base.Restart();
-            interruptTimer.Restart();
-            resetTimer.Restart();
+            base.Reset();
+            interruptTimer.Reset();
+            resetTimer.Reset();
             IRQ.Unset();
 
             resetSequence = ResetSequence.WaitForFirstByte;
@@ -57,6 +59,24 @@ namespace Antmicro.Renode.Peripherals.Timers
             // We are intentionally not clearing systemReset variable
             // as it should persist after watchdog-triggered reset.
         }
+       
+    private bool unlock_register (ushort unlock_value ){
+      bool unlock_stautus=flase;
+
+      if (unlock_value==WP_NUM){
+         
+         unlock_value = WP_NUM ;
+         
+        unlock_status = true;
+        this.InfoLog("password unlock");
+        
+      }
+      else {
+        this.InfoLog("wrong password");
+      }
+    
+     return unlock_status;
+    }
 
         public long Size => 0x400;
 
@@ -72,19 +92,19 @@ namespace Antmicro.Renode.Peripherals.Timers
         private void DefineRegisters()
         {
             Registers.Control.Define(this)
-                 .WithFlag(0, name: "CTRL.wdt_en",
+                 .WithFlag(0,FieldMode.Read | FieldMode.Write, name: "CTRL.wdt_en",
                     writeCallback: (_, value) =>
                     {
                         interruptTimer.Enabled = value;
                         resetTimer.Enabled = value;
                     })
 
-                .WithFlag(1, name: "CTRL.clk_set",
+                .WithFlag(1, FieldMode.Read | FieldMode.Write,name: "CTRL.clk_set",
                     valueProviderCallback: _ => systemReset,
                     writeCallback: (_, value) => systemReset = value)
 
 
-                    .WithFlag(2, name: "CTRL.int_en",
+                    .WithFlag(2,FieldMode.Read | FieldMode.Write, name: "CTRL.int_en",
                     valueProviderCallback: _ => interruptTimer.EventEnabled,
                     writeCallback: (_, value) =>
                     {
@@ -92,17 +112,17 @@ namespace Antmicro.Renode.Peripherals.Timers
                         UpdateInterrupts();
                     })
 
-                    .WithFlag(3, name: "CTRL.rst_en",
+                    .WithFlag(3, FieldMode.Read | FieldMode.Write,name: "CTRL.rst_en",
                     valueProviderCallback: _ => resetTimer.EventEnabled,
                     changeCallback: (_, value) => resetTimer.EventEnabled = value)
 
-                   .WithValueField(4, 4, name: "CTRL.int_period",
+                   .WithValueField(4, 4, FieldMode.Read | FieldMode.Write, name: "CTRL.int_period",
                     changeCallback: (_, value) =>
                     {
                         interruptTimer.Limit = 1UL << (31 - (int)value);
                     })
 
-                    .WithValueField(8, 3, name: "CTRL.rst_period",
+                    .WithValueField(8, 3, FieldMode.Read | FieldMode.Write, name: "CTRL.rst_period",
                     changeCallback: (_, value) =>
                     {
                         resetTimer.Limit = 1UL << (31 - (int)value);
@@ -112,14 +132,14 @@ namespace Antmicro.Renode.Peripherals.Timers
             ;
 
             Registers.Restart.Define(this)
-                .WithValueField(0, 16, name: "RST.wdt_rst",
+                .WithValueField(0, 16, FieldMode.Read | FieldMode.Write,name: "RST.wdt_rst",
                     writeCallback: (_, value) =>
-                    {
-                        if(resetSequence == ResetSequence.WaitForFirstByte && value == FirstResetByte)
+                    {  
+                        if(resetSequence == ResetSequence.WaitForFirstByte && value == WP_NUM)
                         {
                             resetSequence = ResetSequence.WaitForSecondByte;
                         }
-                        else if(resetSequence == ResetSequence.WaitForSecondByte && value == SecondResetByte)
+                        else if(resetSequence == ResetSequence.WaitForSecondByte && value == RESTART_NUM )
                         {
                             resetSequence = ResetSequence.WaitForFirstByte;
                             interruptTimer.Value = interruptTimer.Limit;
@@ -131,14 +151,15 @@ namespace Antmicro.Renode.Peripherals.Timers
                         }
                     })
                 .WithReservedBits(16, 16)
-            ;
+             ;
 
              Registers.Write_Enable.Define(this)
              
-              .WithValueField(0, 16, name: "WEn",
+              .WithValueField(0, 16, FieldMode.Read | FieldMode.Write , name: "WEn",
                     changeCallback: (_, value) =>
                     {
-                       
+                      (unlock_register(value)); 
+
                     })
               .WithReservedBits(16, 16)
              ;
@@ -162,8 +183,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         private readonly LimitTimer resetTimer;
 
         private const ulong InitialLimit = (1UL << 31);
-        private const byte FirstResetByte = 0xA5;
-        private const byte SecondResetByte = 0x5A;
+        
 
           private const ushort WP_NUM = 0x5AA5;
 
