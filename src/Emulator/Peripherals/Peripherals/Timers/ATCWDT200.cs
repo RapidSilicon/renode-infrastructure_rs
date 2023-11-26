@@ -19,18 +19,18 @@ namespace Antmicro.Renode.Peripherals.Timers
 {
     public class ATCWDT200 : BasicDoubleWordPeripheral, IKnownSize
     {
-        public ATCWDT200( Machine machine, long frequency ) : base(machine)
+        public ATCWDT200( Machine machine ) : base(machine)
         {
-            IRQ = new GPIO();
+           IRQ = new GPIO();
 
-            interruptTimer = new LimitTimer(machine.ClockSource, frequency , this, "interrupt_timer", InitialLimit, eventEnabled: true);
+            interruptTimer = new LimitTimer(machine.ClockSource , timerFrequency,this, "interrupt_timer", InitialLimit, eventEnabled: true);
             interruptTimer.LimitReached += () =>
             {
-                interruptPending.Value = true;
-                UpdateInterrupts();
+             interruptPending.Value = true;
+                UpdateInterrupts();   
             };
 
-            resetTimer = new LimitTimer(machine.ClockSource, gcr.SysClk / 2, this, "reset_timer", InitialLimit, eventEnabled: true);
+            resetTimer = new LimitTimer(machine.ClockSource,timerFrequency, this, "reset_timer", InitialLimit, eventEnabled: true);
             resetTimer.LimitReached += () =>
             {
                 if(BeforeReset?.Invoke() ?? false)
@@ -61,7 +61,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         }
        
     private bool unlock_register (ushort unlock_value ){
-      bool unlock_stautus=flase;
+      bool unlock_status=false;
 
       if (unlock_value==WP_NUM){
          
@@ -86,7 +86,7 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         private void UpdateInterrupts()
         {
-            IRQ.Set(interruptTimer.EventEnabled && interruptPending.Value);
+            
         }
 
         private void DefineRegisters()
@@ -130,47 +130,58 @@ namespace Antmicro.Renode.Peripherals.Timers
                
                     .WithReservedBits(11, 21)
             ;
+          
+            var enable=Registers.Write_Enable.Define(this);
+             
+                 enable
+                 
+                .WithValueField(0, 16, FieldMode.Read | FieldMode.Write , name: "WEn",
+                    changeCallback: (_, value) =>
+                    {
+                      unlock_register((ushort)value); 
+
+                    })
+               .WithReservedBits(16, 16)
+             ;
 
             Registers.Restart.Define(this)
                 .WithValueField(0, 16, FieldMode.Read | FieldMode.Write,name: "RST.wdt_rst",
                     writeCallback: (_, value) =>
                     {  
-                        if(resetSequence == ResetSequence.WaitForFirstByte && value == WP_NUM)
+                         
+                    if(){
+
+                        if( resetSequence == ResetSequence.WaitForFirstByte )
                         {
                             resetSequence = ResetSequence.WaitForSecondByte;
+                            this.InfoLog("Enable write to restart register");
                         }
                         else if(resetSequence == ResetSequence.WaitForSecondByte && value == RESTART_NUM )
                         {
                             resetSequence = ResetSequence.WaitForFirstByte;
                             interruptTimer.Value = interruptTimer.Limit;
                             resetTimer.Value = resetTimer.Limit;
+                            this.InfoLog("restart register get unlocked");
                         }
                         else
                         {
                             resetSequence = ResetSequence.WaitForFirstByte;
+                            this.InfoLog("restart register is write protected");
                         }
+                    }
                     })
                 .WithReservedBits(16, 16)
-             ;
+                ;
+        
+            
 
-             Registers.Write_Enable.Define(this)
-             
-              .WithValueField(0, 16, FieldMode.Read | FieldMode.Write , name: "WEn",
-                    changeCallback: (_, value) =>
-                    {
-                      (unlock_register(value)); 
-
-                    })
-              .WithReservedBits(16, 16)
-             ;
-
-             Registers.Status.Define(this)
+            /* Registers.Status.Define(this)
                  .WithFlag(0, name: "IntExpired",
                     valueProviderCallback: _ => ,
                     changeCallback: (_, value) =>   )
               
               .WithReservedBits(1, 31)
-             ;
+             ;*/
              
         }
 
@@ -188,7 +199,8 @@ namespace Antmicro.Renode.Peripherals.Timers
           private const ushort WP_NUM = 0x5AA5;
 
           private const ushort RESTART_NUM = 0xCAFE;
-
+           
+         private const long timerFrequency = 266000000; //266 MHz
         private enum ResetSequence
         {
             WaitForFirstByte,
