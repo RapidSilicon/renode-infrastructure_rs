@@ -8,6 +8,7 @@ using System;
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Core.Structure.Registers;
 using Antmicro.Renode.Peripherals.Miscellaneous;
+using Antmicro.Renode.Logging;
 
 namespace Antmicro.Renode.Peripherals.Timers
 {
@@ -113,16 +114,19 @@ namespace Antmicro.Renode.Peripherals.Timers
                         if(resetSequence == ResetSequence.WaitForFirstByte && value == FirstResetByte)
                         {
                             resetSequence = ResetSequence.WaitForSecondByte;
+                            this.InfoLog("Enable write to restart register");
                         }
                         else if(resetSequence == ResetSequence.WaitForSecondByte && value == SecondResetByte)
                         {
                             resetSequence = ResetSequence.WaitForFirstByte;
                             interruptTimer.Value = interruptTimer.Limit;
                             resetTimer.Value = resetTimer.Limit;
+                            this.InfoLog("restart register get unlocked");
                         }
                         else
                         {
                             resetSequence = ResetSequence.WaitForFirstByte;
+                            this.InfoLog("restart register is write protected");
                         }
                     })
                 .WithReservedBits(8, 24)

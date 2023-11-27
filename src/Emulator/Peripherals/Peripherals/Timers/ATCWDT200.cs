@@ -54,13 +54,13 @@ namespace Antmicro.Renode.Peripherals.Timers
             resetTimer.Reset();
             IRQ.Unset();
 
-            resetSequence = ResetSequence.WaitForFirstByte;
+            resetSequence = ResetSequence.WaitForUnlock;
 
             // We are intentionally not clearing systemReset variable
             // as it should persist after watchdog-triggered reset.
         }
        
-    private bool unlock_register (ushort unlock_value ){
+    /*private bool unlock_register (ushort unlock_value ){
       bool unlock_status=false;
 
       if (unlock_value==WP_NUM){
@@ -76,6 +76,18 @@ namespace Antmicro.Renode.Peripherals.Timers
       }
     
      return unlock_status;
+    }*/
+
+    private bool CheckifUnlock(Registers reg){
+       
+       if (registersUnlocked)
+       {
+        return true;
+       }
+
+       this.Log(LogLevel.Warning, "Writing to {0} is allowed only when the register is unlocked", reg);
+       return false;
+        
     }
 
         public long Size => 0x400;
@@ -131,49 +143,64 @@ namespace Antmicro.Renode.Peripherals.Timers
                     .WithReservedBits(11, 21)
             ;
           
-            var enable=Registers.Write_Enable.Define(this);
-             
-                 enable
+           /* Registers.Write_Enable.Define(this)
                  
-                .WithValueField(0, 16, FieldMode.Read | FieldMode.Write , name: "WEn",
+                .WithValueField(0, 16 , name: "WEn",
                     changeCallback: (_, value) =>
-                    {
+                    { 
                       unlock_register((ushort)value); 
-
+                       
+                     if( unlock_register((ushort)value)) 
+                          enable=true;
+                    
                     })
                .WithReservedBits(16, 16)
-             ;
+             ;*/
 
             Registers.Restart.Define(this)
-                .WithValueField(0, 16, FieldMode.Read | FieldMode.Write,name: "RST.wdt_rst",
+                .WithValueField(0, 16,name: "RST.wdt_rst",
                     writeCallback: (_, value) =>
                     {  
                          
-                    if(){
+                    if(CheckifUnlock(Registers.Restart)){
 
-                        if( resetSequence == ResetSequence.WaitForFirstByte )
-                        {
-                            resetSequence = ResetSequence.WaitForSecondByte;
+                        
+                            resetSequence = ResetSequence.WaitForRestart;
                             this.InfoLog("Enable write to restart register");
                         }
-                        else if(resetSequence == ResetSequence.WaitForSecondByte && value == RESTART_NUM )
+                        else if(value== RESTART_NUM && resetSequence == ResetSequence.WaitForRestart)
                         {
-                            resetSequence = ResetSequence.WaitForFirstByte;
+                           resetSequence = ResetSequence.WaitForUnlock; 
                             interruptTimer.Value = interruptTimer.Limit;
                             resetTimer.Value = resetTimer.Limit;
                             this.InfoLog("restart register get unlocked");
                         }
-                        else
+
+                      else
                         {
-                            resetSequence = ResetSequence.WaitForFirstByte;
+                           resetSequence = ResetSequence.WaitForUnlock;
                             this.InfoLog("restart register is write protected");
+                           
                         }
+                       
                     }
-                    })
+                     
+                    )
                 .WithReservedBits(16, 16)
                 ;
         
-            
+            Registers.Write_Enable.Define(this)
+                 
+                .WithValueField(0, 16 , name: "WEn",
+                    changeCallback: (_, value) =>
+                    { 
+                      if (value== WP_NUM)
+
+                      registersUnlocked=true;
+                    
+                    })
+               .WithReservedBits(16, 16)
+             ;
 
             /* Registers.Status.Define(this)
                  .WithFlag(0, name: "IntExpired",
@@ -201,10 +228,13 @@ namespace Antmicro.Renode.Peripherals.Timers
           private const ushort RESTART_NUM = 0xCAFE;
            
          private const long timerFrequency = 266000000; //266 MHz
+
+          private bool registersUnlocked;
         private enum ResetSequence
         {
-            WaitForFirstByte,
-            WaitForSecondByte
+            WaitForUnlock,
+             
+            WaitForRestart
         }
 
         private enum Registers
