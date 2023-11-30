@@ -760,7 +760,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get => compare0Timer.Enabled;
                 set
                 {
-                    Console.WriteLine("Setting InternalTimer enabled to {0}", value);
+                    //Console.WriteLine("Setting InternalTimer enabled to {0}", value);
                     if(Enabled == value)
                     {
                         return;

@@ -25,26 +25,30 @@ namespace Antmicro.Renode.Peripherals.Timers
 
             interruptTimer = new LimitTimer(machine.ClockSource , timerFrequency,this, "interrupt_timer", InitialLimit, eventEnabled: true);
             interruptTimer.LimitReached += () =>
-            {
-             interruptPending.Value = true;
+            { 
+                Console.WriteLine("interrupt limit reached");
+             //interruptPending.Value = true;
                 UpdateInterrupts();   
             };
 
             resetTimer = new LimitTimer(machine.ClockSource,timerFrequency, this, "reset_timer", InitialLimit, eventEnabled: true);
             resetTimer.LimitReached += () =>
-            {
+            {   
                 if(BeforeReset?.Invoke() ?? false)
-                {
+                {  Console.WriteLine("reset limit not reached");
                     return;
                 }
-
+                
                 systemReset = true;
+                Console.WriteLine("reset limit reached");
                 machine.RequestReset();
             };
 
            
 
             DefineRegisters();
+            ResetInnerStatus();
+            
         }
 
         public override void Reset()
@@ -83,12 +87,148 @@ namespace Antmicro.Renode.Peripherals.Timers
        if (registersUnlocked)
        {
         return true;
-       }
-
-       this.Log(LogLevel.Warning, "Writing to {0} is allowed only when the register is unlocked", reg);
-       return false;
         
+       }
+       
+       this.Log(LogLevel.Warning, "Writing to {0} is allowed only when the register is unlocked", reg);
+       
+       return false;
+       
     }
+
+
+    private ulong resetinterval(int value){
+    ulong interval;
+    switch (value){
+    
+    case 0:
+    interval=1UL << (31 - (int)24);
+      this.InfoLog("case 1");
+
+    break;
+    case 1:
+    interval=1UL << (31 - (int)23);
+    this.InfoLog("case 2");
+    break;
+    case 2:
+    interval=1UL << (31 - (int)22);
+     this.InfoLog("case 3");
+    break;
+    case 3:
+    interval=1UL << (31 - (int)21);
+     this.InfoLog("case 4");
+    break;
+    case 4:
+    interval=1UL << (31 - (int)20);
+     this.InfoLog("case 5");
+    break;
+    case 5:
+    interval=1UL << (31 - (int)19);
+     this.InfoLog("case 6");
+    break;
+    case 6:
+    interval=1UL << (31 - (int)18);
+     this.InfoLog("case 7");
+    break;
+    case 7:
+    interval=1UL << (31 - (int)17);
+     this.InfoLog("case 8");
+    break;
+    default:
+    interval=0;
+     this.InfoLog("case default");
+    break;
+    }
+    
+   return interval;
+    
+    
+    }
+    
+   
+ private ulong interruptinterval(int value){
+    ulong interval;
+    switch (value){
+    
+    case 0:
+    interval=1UL << (31 - (int)25);
+      this.InfoLog("case 0");
+
+    break;
+    case 1:
+    interval=1UL << (31 - (int)23);
+    this.InfoLog("case 1");
+    break;
+    case 2:
+    interval=1UL << (31 - (int)21);
+     this.InfoLog("case 2");
+    break;
+    case 3:
+    interval=1UL << (31 - (int)20);
+     this.InfoLog("case 3");
+    break;
+    case 4:
+    interval=1UL << (31 - (int)19);
+     this.InfoLog("case 4");
+    break;
+    case 5:
+    interval=1UL << (31 - (int)18);
+     this.InfoLog("case 5");
+    break;
+    case 6:
+    interval=1UL << (31 - (int)17);
+     this.InfoLog("case 6");
+    break;
+    case 7:
+    interval=1UL << (31 - (int)16);
+     this.InfoLog("case 7");
+    break;
+     case 8:
+    interval=1UL << (31 - (int)14);
+     this.InfoLog("case 8");
+    break;
+     case 9:
+    interval=1UL << (31 - (int)12);
+     this.InfoLog("case 9");
+    break;
+    case 10:
+    interval=1UL << (31 - (int)10);
+     this.InfoLog("case 10");
+    break;
+    case 11:
+    interval=1UL << (31 - (int)8);
+     this.InfoLog("case 11");
+    break;
+    case 12:
+    interval=1UL << (31 - (int)6);
+    this.InfoLog("case 12");
+    break;
+    case 13 :
+    interval=1UL << (31 - (int)4);
+    this.InfoLog("case 13");
+    break;
+    case 14:
+    interval=1UL << (31 - (int)2);
+    this.InfoLog("case 14");
+    break;
+    case 15:
+    interval=1UL << (31);
+    this.InfoLog("case 15");
+    break;
+
+    default:
+    interval=0;
+     this.InfoLog("case default");
+    break;
+    }
+    
+   return interval;
+    
+    
+    }
+    
+
+
 
         public long Size => 0x400;
 
@@ -98,47 +238,83 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         private void UpdateInterrupts()
         {
+            IRQ.Set(interruptTimer.EventEnabled); 
+        }
+        private void ResetInnerStatus()
+        {
+            firstStageUnlocked = false;
+            registersUnlocked = false;
             
         }
+
 
         private void DefineRegisters()
         {
             Registers.Control.Define(this)
-                 .WithFlag(0,FieldMode.Read | FieldMode.Write, name: "CTRL.wdt_en",
+                 .WithFlag(0, name: "CTRL.wdt_en",
                     writeCallback: (_, value) =>
+                    {  if(CheckifUnlock(Registers.Control))
                     {
                         interruptTimer.Enabled = value;
-                        resetTimer.Enabled = value;
+                       resetTimer.Enabled = value;
+                       this.InfoLog("enable watchdog");
+
+                    }
                     })
 
-                .WithFlag(1, FieldMode.Read | FieldMode.Write,name: "CTRL.clk_set",
-                    valueProviderCallback: _ => systemReset,
-                    writeCallback: (_, value) => systemReset = value)
+                .WithFlag(1,name: "CTRL.clk_set",
+                   // valueProviderCallback: _ => systemReset,
+                    writeCallback: (_, value) => 
+                    {
+                    if(CheckifUnlock(Registers.Control))
+                    
+                    {     
+                    Control_ChClk = (bool)value; 
+                       this.InfoLog("Clock select is {0}",Control_ChClk);    
+                    
+                    }},
+                    valueProviderCallback: _ => { return Control_ChClk ; })
+            
 
-
-                    .WithFlag(2,FieldMode.Read | FieldMode.Write, name: "CTRL.int_en",
+                    .WithFlag(2, name: "CTRL.int_en",
                     valueProviderCallback: _ => interruptTimer.EventEnabled,
                     writeCallback: (_, value) =>
-                    {
+                    {   if(CheckifUnlock(Registers.Control)){
+                           
                         interruptTimer.EventEnabled = value;
-                        UpdateInterrupts();
+                        this.InfoLog("interrupt enable {0}", interruptTimer.EventEnabled);
+
+                       UpdateInterrupts(); 
+                        }
                     })
 
-                    .WithFlag(3, FieldMode.Read | FieldMode.Write,name: "CTRL.rst_en",
+                    .WithFlag(3,name: "CTRL.rst_en",
                     valueProviderCallback: _ => resetTimer.EventEnabled,
-                    changeCallback: (_, value) => resetTimer.EventEnabled = value)
+                    changeCallback: (_, value) => 
+                   { if(CheckifUnlock(Registers.Control))
 
-                   .WithValueField(4, 4, FieldMode.Read | FieldMode.Write, name: "CTRL.int_period",
+                    {    resetTimer.EventEnabled = value;
+                         this.InfoLog("reset enable {0}",resetTimer.EventEnabled);
+                      
+                    }})   
+
+                   .WithValueField(4, 4, name: "CTRL.int_period",
                     changeCallback: (_, value) =>
+                    {  if(CheckifUnlock(Registers.Control))
                     {
-                        interruptTimer.Limit = 1UL << (31 - (int)value);
+                        interruptTimer.Limit = interruptinterval((int)value);
+                        this.InfoLog("interrupt interval set to {0}", interruptTimer.Limit);
+                        }
                     })
 
-                    .WithValueField(8, 3, FieldMode.Read | FieldMode.Write, name: "CTRL.rst_period",
+                    .WithValueField(8, 3, name: "CTRL.rst_period",
                     changeCallback: (_, value) =>
-                    {
-                        resetTimer.Limit = 1UL << (31 - (int)value);
-                    })
+                    {  if(CheckifUnlock(Registers.Control)){
+                        resetTimer.Limit = resetinterval((int)value);
+                        this.InfoLog("reset interval set to {0}", resetTimer.Limit);
+                    }
+                    }
+                    )
                
                     .WithReservedBits(11, 21)
             ;
@@ -161,25 +337,28 @@ namespace Antmicro.Renode.Peripherals.Timers
                 .WithValueField(0, 16,name: "RST.wdt_rst",
                     writeCallback: (_, value) =>
                     {  
-                         
+                        
                     if(CheckifUnlock(Registers.Restart)){
 
+                        resetSequence = ResetSequence.WaitForRestart;
+                        this.InfoLog("Enable write to restart register");
                         
-                            resetSequence = ResetSequence.WaitForRestart;
-                            this.InfoLog("Enable write to restart register");
+
                         }
-                        else if(value== RESTART_NUM && resetSequence == ResetSequence.WaitForRestart)
+                    else if(value== RESTART_NUM && resetSequence == ResetSequence.WaitForRestart)
                         {
                            resetSequence = ResetSequence.WaitForUnlock; 
                             interruptTimer.Value = interruptTimer.Limit;
                             resetTimer.Value = resetTimer.Limit;
-                            this.InfoLog("restart register get unlocked");
+                            this.InfoLog("restart register get unlocked {0}, {1}", interruptTimer.Limit,resetTimer.Limit);
                         }
 
                       else
-                        {
-                           resetSequence = ResetSequence.WaitForUnlock;
+                        { 
+                            
+                           
                             this.InfoLog("restart register is write protected");
+                            resetSequence = ResetSequence.WaitForUnlock;
                            
                         }
                        
@@ -194,11 +373,15 @@ namespace Antmicro.Renode.Peripherals.Timers
                 .WithValueField(0, 16 , name: "WEn",
                     changeCallback: (_, value) =>
                     { 
-                      if (value== WP_NUM)
+                      if (value== WP_NUM && !firstStageUnlocked)
 
-                      registersUnlocked=true;
+                     { registersUnlocked=true;
+                      firstStageUnlocked = true;
+                     }
+                     
                     
-                    })
+                    },
+                    valueProviderCallback: _ => 0)
                .WithReservedBits(16, 16)
              ;
 
@@ -221,13 +404,16 @@ namespace Antmicro.Renode.Peripherals.Timers
         private readonly LimitTimer resetTimer;
 
         private const ulong InitialLimit = (1UL << 31);
-        
+        private bool Control_ChClk ;   
 
           private const ushort WP_NUM = 0x5AA5;
 
           private const ushort RESTART_NUM = 0xCAFE;
            
          private const long timerFrequency = 266000000; //266 MHz
+         private const double clockperiod =0.000000000376 ; //266 MHz
+          
+        private bool firstStageUnlocked;
 
           private bool registersUnlocked;
         private enum ResetSequence

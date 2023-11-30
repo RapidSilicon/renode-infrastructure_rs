@@ -77,11 +77,13 @@ namespace Antmicro.Renode.Peripherals.Timers
                     changeCallback: (_, value) =>
                     {
                         interruptTimer.Limit = 1UL << (31 - (int)value);
+                        this.InfoLog("interruptTimer.Limit = {0}", interruptTimer.Limit);
                     })
                 .WithValueField(4, 4, name: "CTRL.rst_period",
                     changeCallback: (_, value) =>
                     {
                         resetTimer.Limit = 1UL << (31 - (int)value);
+                        this.InfoLog("resetTimer.Limit = {0}", resetTimer.Limit);
                     })
                 .WithFlag(8, name: "CTRL.wdt_en",
                     writeCallback: (_, value) =>
