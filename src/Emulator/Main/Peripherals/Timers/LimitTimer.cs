@@ -172,11 +172,12 @@ namespace Antmicro.Renode.Peripherals.Timers
         public bool Enabled
         {
             get
-            {
+            {  //Console.WriteLine("Enabled property get");
                 return clockSource.GetClockEntry(OnLimitReached).Enabled;
+                
             }
             set
-            {
+            {   //Console.WriteLine("Enabled property set");
                 clockSource.ExchangeClockEntryWith(OnLimitReached, oldEntry => oldEntry.With(enabled: value),
                     () => { throw new InvalidOperationException("Should not reach here."); });
                     // should not reach here - limit should already be set in ctor
@@ -187,16 +188,20 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             get
             {
+                //Console.WriteLine("EventEnabled");
                 lock(irqSync)
                 {
                     return eventEnabled;
+                    // Console.WriteLine("EventEnabledinner");
                 }
             }
             set
-            {
+            {   Console.WriteLine("EventEnabledset");
                 lock(irqSync)
                 {
                     eventEnabled = value;
+                  //  Console.WriteLine("EventEnabledinnerset");
+
                 }
             }
         }

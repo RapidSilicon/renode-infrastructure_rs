@@ -68,6 +68,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         private void UpdateInterrupts()
         {
             IRQ.Set(interruptTimer.EventEnabled && interruptPending.Value);
+             this.InfoLog("interruptTimer (0), interruptPending {1}",interruptTimer.EventEnabled, interruptPending.Value);
         }
 
         private void DefineRegisters()
