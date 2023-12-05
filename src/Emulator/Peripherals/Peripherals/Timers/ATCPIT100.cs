@@ -22,9 +22,6 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             IRQ = new GPIO();
             internalTimers = new InternalTimer[channelCount, InternalTimersPerChannel];
-
-            this.Log(LogLevel.Info, "clock source: {0}", machine.ClockSource);
-
             for(var i = 0; i < channelCount; ++i)
             {
                 for (var j = 0; j < InternalTimersPerChannel; ++j)
@@ -106,7 +103,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             //if (AreAllIntStatusZero()) interrupt = false;
             if(IRQ.IsSet != interrupt)
             {
-                this.InfoLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
+                this.NoisyLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
             }
             
             IRQ.Set(interrupt);
@@ -135,8 +132,10 @@ namespace Antmicro.Renode.Peripherals.Timers
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
-                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                        if (enableValue == true){
+                            this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
                             timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
                     }
                     break;
                 case ChannelMode.Timer_16bit:
@@ -147,8 +146,10 @@ namespace Antmicro.Renode.Peripherals.Timers
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
-                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                        if (enableValue == true){
+                            this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
                             timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
                     }
                     break;
                 case ChannelMode.Timer_8bit:
@@ -159,8 +160,10 @@ namespace Antmicro.Renode.Peripherals.Timers
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
-                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                        if (enableValue == true){
+                            this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
                             timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
                     }
                     break;
                 case ChannelMode.PWM:
@@ -175,8 +178,10 @@ namespace Antmicro.Renode.Peripherals.Timers
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
-                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                        if (enableValue == true){
+                            this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
                             timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
                     }
                     break;
                 case ChannelMode.PWM_Timer_8bit:
@@ -188,8 +193,10 @@ namespace Antmicro.Renode.Peripherals.Timers
                             channelNum, timerNum, enableValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
                     }
                     else{
-                        this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
+                        if (enableValue == true){
+                            this.Log(LogLevel.Error, "Cannot enable timer {0} when channel {1} is in {2} mode", 
                             timerNum, channelNum, ChannelN_Control_ChMode[channelNum]);
+                        }
                     }
                     break;
             }
@@ -840,7 +847,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get => compare0Timer.Enabled;
                 set
                 {
-                    Console.WriteLine("Setting InternalTimer enabled to {0}", value);
+                    //Console.WriteLine("Setting InternalTimer enabled to {0}", value);
                     if(Enabled == value)
                     {
                         return;
