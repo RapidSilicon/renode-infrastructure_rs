@@ -23,36 +23,41 @@ namespace Antmicro.Renode.Peripherals.Timers
     {
         public ATCWDT200( Machine machine ) : base(machine)
         {    DefineRegisters();
-            IRQ = new GPIO();
-          
+            IRQ0 = new GPIO();
+            IRQ1 = new GPIO();
+            
            
             interruptTimer = new LimitTimer(machine.ClockSource , timerFrequency,this, "interrupt_timer", InitialLimit, eventEnabled: true);
+        
+           
             interruptTimer.LimitReached += () =>
             { 
                 Console.WriteLine("interrupt limit reached");
                 interruptPending.Value = true;
       
-                UpdateInterrupts();   
-               // Thread.Sleep(90000);
+             UpdateInterrupts(); 
+            // Update();  
+              Thread.Sleep(3000);
             };
 
-            resetTimer = new LimitTimer(machine.ClockSource,timerFrequency, this, "reset_timer", InitialLimit,eventEnabled: true);
-            resetTimer.LimitReached += () =>
+             
+
+        resetTimer = new LimitTimer(machine.ClockSource,timerFrequency, this, "reset_timer", InitialLimit,eventEnabled: true);
+        resetTimer.LimitReached += () =>
             {   
                 if(BeforeReset?.Invoke() ?? false)
                 {  Console.WriteLine("reset limit not reached");
                     return;
                 }
+                Thread.Sleep(3000);
+                systemReset = true;
+                ResetOccured();
+                //Update();
                 
-               // systemReset = true;
                 Console.WriteLine("reset limit reached");
+                
                 machine.RequestReset();
-            };
-
-           
-
-           
-            
+            };   
             
         }
 
@@ -61,8 +66,8 @@ namespace Antmicro.Renode.Peripherals.Timers
             base.Reset();
             interruptTimer.Reset();
             resetTimer.Reset();
-            IRQ.Unset();
-
+            IRQ0.Unset();
+            
             resetSequence = ResetSequence.WaitForUnlock;
 
             // We are intentionally not clearing systemReset variable
@@ -238,35 +243,61 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         public long Size => 0x400;
 
-       // public GPIO IRQ { get; set; }
+        public GPIO IRQ0 { get; set; }
 
-        public GPIO IRQ { get; }
+        public GPIO IRQ1 { get;  set; }
         public Func<bool> BeforeReset { get; }
          
-         bool interrupt=false;
-        private void UpdateInterrupts()
-        {  interrupt|= (interruptTimer.EventEnabled && interruptPending.Value);
-       // this.InfoLog("interruptTimer {0}, interruptPending {1}",interruptTimer.EventEnabled, interruptPending.Value);
-         
-        
-        if(interrupt==true) {
-        
-        IRQ.Set(true);
-       this.InfoLog("interruptTimer {0}, interruptPending {1}",interruptTimer.EventEnabled, interruptPending.Value);  
+        // bool interrupt=false;
+       private void UpdateInterrupts()
+        {   if(interruptTimer.EventEnabled && interruptPending.Value)
+           { IRQ0.Set();
+            this.InfoLog("Sending  interrupt signal {0}",IRQ0.IsSet);
+           }
+            else
+            {
+                IRQ0.Unset();
+            }
 
         }
 
-        else {
-         IRQ.Set(false);
-         this.InfoLog("interrupt not generated{0}, status not generated{1}",interruptTimer.EventEnabled, interruptPending.Value);
-        }
-        }
-       
+          private void ResetOccured()
+        {   if(systemReset)
+           { IRQ1.Set();
+            this.InfoLog("Sending  reset signal {0}",IRQ1.IsSet );
+           }
+             else
+            {
+                IRQ1.Unset();
+            }
+            
+        } 
       
-     
+        /* private void Update()
+        {
+            if(interruptTimer.EventEnabled && interruptPending.Value)
+            {
+                IRQ0.Set();
+                this.InfoLog("interruptTimer {0}, interruptPending {1}",interruptTimer.EventEnabled, interruptPending.Value);
+            }
+            else
+            {
+                IRQ0.Unset();
+            }
 
-
-
+            if(systemReset)
+            {
+                IRQ1.Set();
+            this.InfoLog("systemReset {0} ",systemReset );
+                
+                
+            
+            }
+            else
+            {
+                IRQ1.Unset();
+            }
+        } */
         private void ResetInnerStatus()
         {
             firstStageUnlocked = false;
@@ -280,7 +311,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             Registers.Control.Define(this)
                  .WithFlag(0, name: "CTRL.wdt_en",
                     writeCallback: (_, value) =>
-                    {  //if(CheckifUnlock(Registers.Control))
+                    {  if(CheckifUnlock(Registers.Control))
                     {
                         interruptTimer.Enabled = value;
                        resetTimer.Enabled = value;
@@ -293,7 +324,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                    // valueProviderCallback: _ => systemReset,
                     writeCallback: (_, value) => 
                     {
-                    //if(CheckifUnlock(Registers.Control))
+                    if(CheckifUnlock(Registers.Control))
                     
                     {     
                     Control_ChClk = (bool)value; 
@@ -306,13 +337,14 @@ namespace Antmicro.Renode.Peripherals.Timers
                     .WithFlag(2, name: "CTRL.int_en",
                     valueProviderCallback: _ => interruptTimer.EventEnabled,
                     writeCallback: (_, value) =>
-                    {  // if(CheckifUnlock(Registers.Control))
+                    {   if(CheckifUnlock(Registers.Control))
                     {
                            
                         interruptTimer.EventEnabled = value;
                         this.InfoLog("interrupt enable {0}", interruptTimer.EventEnabled);
 
                        UpdateInterrupts(); 
+                      //Update();
                        
                         }
                     })
@@ -320,7 +352,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     .WithFlag(3,name: "CTRL.rst_en",
                     valueProviderCallback: _ => resetTimer.EventEnabled,
                     changeCallback: (_, value) => 
-                   { //if(CheckifUnlock(Registers.Control))
+                   { if(CheckifUnlock(Registers.Control))
 
                     {    resetTimer.EventEnabled = value;
                          this.InfoLog("reset enable {0}",resetTimer.EventEnabled);
@@ -330,7 +362,7 @@ namespace Antmicro.Renode.Peripherals.Timers
 
                    .WithValueField(4, 4, name: "CTRL.int_period",
                     changeCallback: (_, value) =>
-                    { // if(CheckifUnlock(Registers.Control))
+                    {  if(CheckifUnlock(Registers.Control))
                     {
                         interruptTimer.Limit = interruptinterval((int)value);
                         this.InfoLog("interrupt interval set to {0}", interruptTimer.Limit);
@@ -340,14 +372,15 @@ namespace Antmicro.Renode.Peripherals.Timers
 
                     .WithValueField(8, 3, name: "CTRL.rst_period",
                     changeCallback: (_, value) =>
-                    { // if(CheckifUnlock(Registers.Control))
-                    {
+                    {  if(CheckifUnlock(Registers.Control))
+                    {     ResetInnerStatus();
                         resetTimer.Limit = resetinterval((int)value);
                         this.InfoLog("reset interval set to {0}", resetTimer.Limit);
+                       
                     }
                     }
                     )
-               
+                    
                     .WithReservedBits(11, 21)
             ;
           
@@ -375,7 +408,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                         resetSequence = ResetSequence.WaitForRestart;
                         this.InfoLog("Enable write to restart register");
                           
-                        //ResetInnerStatus();
+                        ResetInnerStatus();
                         
                      if(value== RESTART_NUM && resetSequence == ResetSequence.WaitForRestart)
                         {
@@ -427,7 +460,7 @@ namespace Antmicro.Renode.Peripherals.Timers
       
 
         private ResetSequence resetSequence;
-        private bool systemReset;
+        private bool systemReset=false;
 
         private IFlagRegisterField interruptPending;
 

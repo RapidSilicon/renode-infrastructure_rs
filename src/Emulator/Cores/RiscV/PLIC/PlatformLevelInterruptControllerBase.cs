@@ -69,18 +69,21 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
         }
 
         public void OnGPIO(int number, bool value)
-        {
+        {    //Console.WriteLine("Ongpio reached in plic");
             if(!IsIrqSourceAvailable(number))
+
             {
                 this.Log(LogLevel.Error, "Wrong gpio source: {0}", number);
                 return;
             }
             lock(irqSources)
             {
-                this.Log(LogLevel.Noisy, "Setting GPIO number #{0} to value {1}", number, value);
+                this.Log(LogLevel.Info, "Setting GPIO number #{0} to value {1}", number, value);
                 var irq = irqSources[number];
+
                 irq.State = value;
                 irq.IsPending |= value;
+                //this.Log(LogLevel.Info, "irq.ispending value is {0}",irq.IsPending);
                 RefreshInterrupts();
             }
         }
@@ -121,7 +124,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
                 {
                     //excluding source 0 since we return 0 when ignoring interrupt from priority threshold
                     if ((int)value != 0){
-                        this.Log(LogLevel.Error, "Trying to complete handling of non-existing interrupt source {0}", value);
+                    this.Log(LogLevel.Error, "Trying to complete handling of non-existing interrupt source {0}", value);
                     }                   
                     return;
                 }

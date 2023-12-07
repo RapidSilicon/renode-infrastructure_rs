@@ -4,7 +4,7 @@
 // This file is licensed under the MIT License.
 // Full license text is available in 'licenses/MIT.txt'.
 //
-
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Antmicro.Renode.Peripherals.CPU;
@@ -25,8 +25,9 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
         }
 
         public override string ToString()
-        {
-            return $"[Context #{id}]";
+        {  
+            return $"[Context #{id}]";  
+                
         }
 
         public void Reset()
@@ -49,12 +50,14 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             var currentPriority = activeInterrupts.Count > 0 ? activeInterrupts.Peek().Priority : 0; 
             var isPending = enabledSources.Any(x => x.Priority > currentPriority && x.IsPending);
             irqController.Connections[(int)this.id].Set(isPending);
+         
+           
         }
 
         public void CompleteHandlingInterrupt(IrqSource irq)
-        {
+        {   // Console.WriteLine("irq reached");
             irqController.Log(LogLevel.Info, "Completing irq {0} at {1}", irq.Id, this);
-
+           
             if(activeInterrupts.Count == 0)
             {
                 irqController.Log(LogLevel.Error, "Trying to complete irq {0} @ {1}, there are no active interrupts left", irq.Id, this);
@@ -130,6 +133,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             //support for priority threshold here
             if (pendingIrq.Priority >= this.priorityThreshold){ 
                 activeInterrupts.Push(pendingIrq);
+                //Console.WriteLine("Acknowledge interrupt");
                 irqController.Log(LogLevel.Info, "Acknowledging pending interrupt #{0} @ {1}", pendingIrq.Id, this);
                 RefreshInterrupt();
                 return pendingIrq.Id;

@@ -192,11 +192,11 @@ namespace Antmicro.Renode.Peripherals.Timers
                 lock(irqSync)
                 {
                     return eventEnabled;
-                    // Console.WriteLine("EventEnabledinner");
-                }
+                    
+            }
             }
             set
-            {   Console.WriteLine("EventEnabledset");
+            {   //Console.WriteLine("EventEnabledset");
                 lock(irqSync)
                 {
                     eventEnabled = value;

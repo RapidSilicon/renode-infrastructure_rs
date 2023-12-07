@@ -30,11 +30,13 @@ namespace Antmicro.Renode.Core
                 if(state == value)
                 {
                     return;
+                  
                 }
                 state = value;
                 for(var i = 0; i < targets.Count; ++i)
                 {
                     targets[i].Receiver.OnGPIO(targets[i].Number, state);
+                   // Console.WriteLine("signal received");
                 }
             }
         }
@@ -86,12 +88,14 @@ namespace Antmicro.Renode.Core
         }
 
         public bool IsSet
-        {
+        {   
             get
-            {
+            { 
                 lock(sync)
                 {
                     return state;
+
+                    
                 }
             }
         }
