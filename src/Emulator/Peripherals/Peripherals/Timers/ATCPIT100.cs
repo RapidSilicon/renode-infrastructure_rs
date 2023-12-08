@@ -94,13 +94,12 @@ namespace Antmicro.Renode.Peripherals.Timers
             for(var i = 0; i < channelCount; i++){
                 for(var j = 0; j < TimersPerChannel; j++){
                     ChannelN_InterruptM_St[i,j] = InterruptStatusReturn(i, j);
-                    //if ((i == 0) && (j <= 1)) this.InfoLog("ChannelN_InterruptM_St = {0}, ChannelN_InterruptM_En = {1} i = {2}, j = {3}", ChannelN_InterruptM_St[i, j], ChannelN_InterruptM_En[i, j], i, j);          
+                    this.NoisyLog("ChannelN_InterruptM_St = {0}, ChannelN_InterruptM_En = {1} i = {2}, j = {3}", ChannelN_InterruptM_St[i, j], ChannelN_InterruptM_En[i, j], i, j);          
                     interrupt |= (ChannelN_InterruptM_St[i, j] && ChannelN_InterruptM_En[i, j]);                   
                     if (interrupt) break;
                 }
                 if (interrupt) break;
             }
-            //if (AreAllIntStatusZero()) interrupt = false;
             if(IRQ.IsSet != interrupt)
             {
                 this.NoisyLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
@@ -108,19 +107,6 @@ namespace Antmicro.Renode.Peripherals.Timers
             
             IRQ.Set(interrupt);
         }        
-
-        private bool AreAllIntStatusZero(){
-            for(var i = 0; i < channelCount; i++){
-                for(var j = 0; j < TimersPerChannel; j++){
-                    if (ChannelN_InterruptM_St[i,j] == true){
-                        return false;
-                    }
-                }
-            }
-            //this.InfoLog("AreAllIntStatusZero = true");
-            return true;
-
-        }
 
         private void TimerEnable(int channelNum, int timerNum, bool enableValue){
             switch (ChannelN_Control_ChMode[channelNum]){
@@ -237,7 +223,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             return returnVal;
         }
 
-        private void ReloadRegister(int channelNum, ulong reloadValue){ //TODO: should we check if timer is en before reloading?
+        private void ReloadRegister(int channelNum, ulong reloadValue){
             /*
              * set channel n reload value depending on ChannelN_Control_ChMode[] by bitshifting values
              */
@@ -271,7 +257,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                         channelNum, reloadValue, (ChannelMode)ChannelN_Control_ChMode[channelNum]);
         }
 
-        private uint ReloadRegisterReturn(int channelNum){ //TODO
+        private uint ReloadRegisterReturn(int channelNum){
             switch(ChannelN_Control_ChMode[channelNum]){
                 case ChannelMode.Timer_32bit:
                     ChannelN_Reload[channelNum, 0] = (uint) internalTimers[channelNum, 0].Compare0;
@@ -294,7 +280,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         }
 
         private uint CounterRegisterReturn(int channelNum){
-            return 0; //temp
+            return 0;
         } //TODO
 
         private void InterruptEnable(int channelNum, int timerNum, bool interruptValue){
@@ -392,13 +378,11 @@ namespace Antmicro.Renode.Peripherals.Timers
                     returnVal = false;
                     break;
             }
-            //UpdateInterrupts();
             return returnVal;
         }
 
         private void InterruptStatus(int channelNum, int timerNum, bool value){
             //value is inverted by W1C control in register before function call
-            //Console.WriteLine("intstatus() value: {0}" , value);
             if (!value){
                 switch (ChannelN_Control_ChMode[channelNum]){
                     case ChannelMode.Timer_32bit:
@@ -449,9 +433,8 @@ namespace Antmicro.Renode.Peripherals.Timers
                     }
                     break;
             }
-            //this.InfoLog("status of ch{0} timer{1}'s is {2} with channel mode {3}",
-              //  channelNum, timerNum, ChannelN_InterruptM_St[channelNum, timerNum], (ChannelMode)ChannelN_Control_ChMode[channelNum]);
-            //UpdateInterrupts();
+            this.NoisyLog("status of ch{0} timer{1} is {2} with channel mode {3}",
+                channelNum, timerNum, ChannelN_InterruptM_St[channelNum, timerNum], (ChannelMode)ChannelN_Control_ChMode[channelNum]);
             return returnvalue;
         }
 
@@ -829,7 +812,6 @@ namespace Antmicro.Renode.Peripherals.Timers
                 compare0Timer.CompareReached += () =>
                 {
                     Compare0Event = true;
-                    //Console.WriteLine("InternalTimer channel {0} timer {1} Compare0Event reached with value {0}", chnum, index, Compare0Event);
                     CompareReached();
                 };
 
@@ -847,7 +829,6 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get => compare0Timer.Enabled;
                 set
                 {
-                    //Console.WriteLine("Setting InternalTimer enabled to {0}", value);
                     if(Enabled == value)
                     {
                         return;
@@ -910,12 +891,9 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 OnCompare?.Invoke();
 
-                //Console.WriteLine("ATCPIT100.cs: CompareReached: OneShot value {0}\n", OneShot);
-
                 if(OneShot)
                 {
                     Value = 0;
-                    //Console.WriteLine("InternalTimer compareReached\n");
                 }
             }
 
