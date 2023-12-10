@@ -45,7 +45,7 @@ namespace Antmicro.Renode.Peripherals.Timers
              
 
         resetTimer = new LimitTimer(machine.ClockSource,timerFrequency, this, "reset_timer", InitialLimit,eventEnabled: true);
-       /* resetTimer.LimitReached += () =>
+       resetTimer.LimitReached += () =>
             {   
                 if(BeforeReset?.Invoke() ?? false)
                 {  Console.WriteLine("reset limit not reached");
@@ -61,7 +61,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 
              //  machine.RequestReset();
 
-            };  */ 
+            };   
          
         }
 
