@@ -23,6 +23,7 @@ namespace Antmicro.Renode.Peripherals.Timers
     {
         public ATCWDT200( Machine machine ) : base(machine)
         {    DefineRegisters();
+             
             IRQ0 = new GPIO();
             IRQ1 = new GPIO();
             
@@ -31,34 +32,37 @@ namespace Antmicro.Renode.Peripherals.Timers
         
            
             interruptTimer.LimitReached += () =>
-            { 
+            {    
+                interruptstatus=true;
                 Console.WriteLine("interrupt limit reached");
                 interruptPending.Value = true;
       
              UpdateInterrupts(); 
             // Update();  
-              Thread.Sleep(3000);
+              Thread.Sleep(10000);
             };
 
              
 
         resetTimer = new LimitTimer(machine.ClockSource,timerFrequency, this, "reset_timer", InitialLimit,eventEnabled: true);
-        resetTimer.LimitReached += () =>
+       /* resetTimer.LimitReached += () =>
             {   
                 if(BeforeReset?.Invoke() ?? false)
                 {  Console.WriteLine("reset limit not reached");
                     return;
                 }
-                Thread.Sleep(3000);
-                systemReset = true;
-                ResetOccured();
-                //Update();
+               
+                
+                
+              IRQ1.Set();
+              this.InfoLog("Sending  reset signal {0}",IRQ1.IsSet );
                 
                 Console.WriteLine("reset limit reached");
                 
-                machine.RequestReset();
-            };   
-            
+             //  machine.RequestReset();
+
+            };  */ 
+         
         }
 
         public override void Reset()
@@ -67,11 +71,11 @@ namespace Antmicro.Renode.Peripherals.Timers
             interruptTimer.Reset();
             resetTimer.Reset();
             IRQ0.Unset();
-            
+            IRQ1.Unset();
+            systemReset=false;
             resetSequence = ResetSequence.WaitForUnlock;
 
-            // We are intentionally not clearing systemReset variable
-            // as it should persist after watchdog-triggered reset.
+            
         }
        
     /*private bool unlock_register (ushort unlock_value ){
@@ -261,17 +265,17 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         }
 
-          private void ResetOccured()
-        {   if(systemReset)
+         /* private void ResetOccured()
+        {  if(systemReset)
            { IRQ1.Set();
             this.InfoLog("Sending  reset signal {0}",IRQ1.IsSet );
            }
              else
             {
-                IRQ1.Unset();
+              IRQ1.UnSet();  
             }
             
-        } 
+        } */
       
         /* private void Update()
         {
@@ -305,6 +309,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             
         }
 
+     
 
         private void DefineRegisters()
         {
@@ -449,9 +454,13 @@ namespace Antmicro.Renode.Peripherals.Timers
                .WithReservedBits(16, 16)
              ;
 
-            Registers.Status.Define(this)
-                 .WithFlag(0, out interruptPending, FieldMode.WriteOneToClear, name: "CTRL.int_flag",
-                    writeCallback: (_, __) => UpdateInterrupts())
+           Registers.Status.Define(this)
+                 .WithFlag(0, out interruptPending,FieldMode.Read | FieldMode.WriteOneToClear, name: "CTRL.int_flag",
+                    writeCallback: (_, __) => UpdateInterrupts()
+                     
+                         
+                    )
+                    
               .WithReservedBits(1, 31)
              ;
              
@@ -461,7 +470,8 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         private ResetSequence resetSequence;
         private bool systemReset=false;
-
+        
+        private bool interruptstatus=false;
         private IFlagRegisterField interruptPending;
 
         private readonly LimitTimer interruptTimer;
