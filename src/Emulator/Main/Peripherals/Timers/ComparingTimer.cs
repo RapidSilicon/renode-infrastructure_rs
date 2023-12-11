@@ -63,6 +63,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
             set
             {
+                
                 clockSource.ExchangeClockEntryWith(CompareReachedInternal, oldEntry => oldEntry.With(enabled: value));
             }
         }
