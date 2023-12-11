@@ -33,13 +33,12 @@ namespace Antmicro.Renode.Peripherals.Timers
            
             interruptTimer.LimitReached += () =>
             {    
-                interruptstatus=true;
+                
                 Console.WriteLine("interrupt limit reached");
                 interruptPending.Value = true;
       
              UpdateInterrupts(); 
-            // Update();  
-              Thread.Sleep(10000);
+            
             };
 
              
@@ -59,7 +58,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 
                 Console.WriteLine("reset limit reached");
                 
-             //  machine.RequestReset();
+              machine.RequestReset();
 
             };   
          
@@ -72,29 +71,12 @@ namespace Antmicro.Renode.Peripherals.Timers
             resetTimer.Reset();
             IRQ0.Unset();
             IRQ1.Unset();
-            systemReset=false;
+            
             resetSequence = ResetSequence.WaitForUnlock;
-
+            this.InfoLog("Watchdog timer reset");
             
         }
        
-    /*private bool unlock_register (ushort unlock_value ){
-      bool unlock_status=false;
-
-      if (unlock_value==WP_NUM){
-         
-         unlock_value = WP_NUM ;
-         
-        unlock_status = true;
-        this.InfoLog("password unlock");
-        
-      }
-      else {
-        this.InfoLog("wrong password");
-      }
-    
-     return unlock_status;
-    }*/
 
     private bool CheckifUnlock(Registers reg){
        
@@ -252,7 +234,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         public GPIO IRQ1 { get;  set; }
         public Func<bool> BeforeReset { get; }
          
-        // bool interrupt=false;
+       
        private void UpdateInterrupts()
         {   if(interruptTimer.EventEnabled && interruptPending.Value)
            { IRQ0.Set();
@@ -265,43 +247,7 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         }
 
-         /* private void ResetOccured()
-        {  if(systemReset)
-           { IRQ1.Set();
-            this.InfoLog("Sending  reset signal {0}",IRQ1.IsSet );
-           }
-             else
-            {
-              IRQ1.UnSet();  
-            }
-            
-        } */
-      
-        /* private void Update()
-        {
-            if(interruptTimer.EventEnabled && interruptPending.Value)
-            {
-                IRQ0.Set();
-                this.InfoLog("interruptTimer {0}, interruptPending {1}",interruptTimer.EventEnabled, interruptPending.Value);
-            }
-            else
-            {
-                IRQ0.Unset();
-            }
-
-            if(systemReset)
-            {
-                IRQ1.Set();
-            this.InfoLog("systemReset {0} ",systemReset );
-                
-                
-            
-            }
-            else
-            {
-                IRQ1.Unset();
-            }
-        } */
+         
         private void ResetInnerStatus()
         {
             firstStageUnlocked = false;
@@ -326,7 +272,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     })
 
                 .WithFlag(1,name: "CTRL.clk_set",
-                   // valueProviderCallback: _ => systemReset,
+                   
                     writeCallback: (_, value) => 
                     {
                     if(CheckifUnlock(Registers.Control))
@@ -349,7 +295,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                         this.InfoLog("interrupt enable {0}", interruptTimer.EventEnabled);
 
                        UpdateInterrupts(); 
-                      //Update();
+                
                        
                         }
                     })
@@ -389,19 +335,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     .WithReservedBits(11, 21)
             ;
           
-           /* Registers.Write_Enable.Define(this)
-                 
-                .WithValueField(0, 16 , name: "WEn",
-                    changeCallback: (_, value) =>
-                    { 
-                      unlock_register((ushort)value); 
-                       
-                     if( unlock_register((ushort)value)) 
-                          enable=true;
-                    
-                    })
-               .WithReservedBits(16, 16)
-             ;*/
+          
 
             Registers.Restart.Define(this)
                 .WithValueField(0, 16,name: "RST.wdt_rst",
@@ -469,9 +403,9 @@ namespace Antmicro.Renode.Peripherals.Timers
       
 
         private ResetSequence resetSequence;
-        private bool systemReset=false;
         
-        private bool interruptstatus=false;
+        
+        
         private IFlagRegisterField interruptPending;
 
         private readonly LimitTimer interruptTimer;
