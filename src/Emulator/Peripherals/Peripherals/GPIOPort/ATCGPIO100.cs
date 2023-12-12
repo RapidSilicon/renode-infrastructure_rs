@@ -85,33 +85,181 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
 
             // Channel Data-Out Register ~ Offset 0x24
             Registers.DataOut.Define(this)
-                .WithValueField(0, 32, FieldMode.Read | FieldMode.Write, name: "DataOut", 
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "DataOut", 
                     valueProviderCallback: _ => 0x0)
                 ;
 
             // Channel Direction Register ~ Offset 0x28
             Registers.ChannelDir.Define(this)
-                .WithValueField(0, 32, FieldMode.Read | FieldMode.Write, name: "ChannelDir", 
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "ChannelDir", 
                     valueProviderCallback: _ => 0x0)
                 ;
 
             // Channel Data-Out Clear Register ~ Offset 0x2C
             Registers.DoutClear.Define(this)
-                .WithValueField(0, 32, FieldMode.Write, name: "DoutClear", 
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Write, name: "DoutClear", 
+                    valueProviderCallback: _ => 0x0)
+                ;
+            // Channel Data-Out Set Register ~ Offset 0x30
+            Registers.DoutSet.Define(this)
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Write, name: "DoutSet",
                     valueProviderCallback: _ => 0x0)
                 ;
 
-            Registers.DoutSet.Define(this);
-            Registers.PullEn.Define(this);
-            Registers.PullType.Define(this);
-            Registers.IntrEn.Define(this);
-            Registers.IntrMode0.Define(this);
-            Registers.IntrMode1.Define(this);
-            Registers.IntrMode2.Define(this);
-            Registers.IntrMode3.Define(this);
-            Registers.IntrStatus.Define(this);
-            Registers.DeBounceEn.Define(this);
-            Registers.DeBounceCtrl.Define(this);
+            // Pull Enable Register ~ Offset 0x40
+            Registers.PullEn.Define(this)
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "PullEn",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
+            // Pull Type Register ~ Offset 0x44
+            Registers.PullType.Define(this)
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "PullType",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
+            // Interrupt Enable Register ~ Offset 0x50
+            Registers.IntrEn.Define(this)
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "IntEn",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
+            // Channel (0~7) Interrupt Mode Register ~ Offset 0x54
+            Registers.IntrMode0.Define(this)
+                .WithReservedBits(31, 1)
+                .WithValueField(28, 3, FieldMode.Read | FieldMode.Write, name: "Ch7IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(27, 1)
+                .WithValueField(24, 3, FieldMode.Read | FieldMode.Write, name: "Ch6IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(23, 1)
+                .WithValueField(20, 3, FieldMode.Read | FieldMode.Write, name: "Ch5IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(19, 1)
+                .WithValueField(16, 3, FieldMode.Read | FieldMode.Write, name: "Ch4IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(15, 1)
+                .WithValueField(12, 3, FieldMode.Read | FieldMode.Write, name: "Ch3IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(11, 1)
+                .WithValueField(8, 3, FieldMode.Read | FieldMode.Write, name: "Ch2IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(7, 1)
+                .WithValueField(4, 3, FieldMode.Read | FieldMode.Write, name: "Ch1IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(3, 1)
+                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch0IntrM",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
+            // Channel (8~15) Interrupt Mode Register ~ Offset 0x58
+            Registers.IntrMode1.Define(this)
+                .WithReservedBits(31, 1)
+                .WithValueField(28, 3, FieldMode.Read | FieldMode.Write, name: "Ch15IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(27, 1)
+                .WithValueField(24, 3, FieldMode.Read | FieldMode.Write, name: "Ch14IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(23, 1)
+                .WithValueField(20, 3, FieldMode.Read | FieldMode.Write, name: "Ch13IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(19, 1)
+                .WithValueField(16, 3, FieldMode.Read | FieldMode.Write, name: "Ch12IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(15, 1)
+                .WithValueField(12, 3, FieldMode.Read | FieldMode.Write, name: "Ch11IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(11, 1)
+                .WithValueField(8, 3, FieldMode.Read | FieldMode.Write, name: "Ch10IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(7, 1)
+                .WithValueField(4, 3, FieldMode.Read | FieldMode.Write, name: "Ch9IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(3, 1)
+                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch8IntrM",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
+            // Channel (16~23) Interrupt Mode Register ~ Offset 0x5C
+            Registers.IntrMode2.Define(this)
+                .WithReservedBits(31, 1)
+                .WithValueField(28, 3, FieldMode.Read | FieldMode.Write, name: "Ch23IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(27, 1)
+                .WithValueField(24, 3, FieldMode.Read | FieldMode.Write, name: "Ch22IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(23, 1)
+                .WithValueField(20, 3, FieldMode.Read | FieldMode.Write, name: "Ch21IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(19, 1)
+                .WithValueField(16, 3, FieldMode.Read | FieldMode.Write, name: "Ch20IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(15, 1)
+                .WithValueField(12, 3, FieldMode.Read | FieldMode.Write, name: "Ch19IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(11, 1)
+                .WithValueField(8, 3, FieldMode.Read | FieldMode.Write, name: "Ch18IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(7, 1)
+                .WithValueField(4, 3, FieldMode.Read | FieldMode.Write, name: "Ch17IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(3, 1)
+                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch16IntrM",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
+            // Channel (24~31) Interrupt Mode Register ~ Offset 0x60
+            Registers.IntrMode3.Define(this)
+                .WithReservedBits(31, 1)
+                .WithValueField(28, 3, FieldMode.Read | FieldMode.Write, name: "Ch31IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(27, 1)
+                .WithValueField(24, 3, FieldMode.Read | FieldMode.Write, name: "Ch30IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(23, 1)
+                .WithValueField(20, 3, FieldMode.Read | FieldMode.Write, name: "Ch29IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(19, 1)
+                .WithValueField(16, 3, FieldMode.Read | FieldMode.Write, name: "Ch28IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(15, 1)
+                .WithValueField(12, 3, FieldMode.Read | FieldMode.Write, name: "Ch27IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(11, 1)
+                .WithValueField(8, 3, FieldMode.Read | FieldMode.Write, name: "Ch26IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(7, 1)
+                .WithValueField(4, 3, FieldMode.Read | FieldMode.Write, name: "Ch25IntrM",
+                    valueProviderCallback: _ => 0x0)
+                .WithReservedBits(3, 1)
+                .WithValueField(0, 3, FieldMode.Read | FieldMode.Write, name: "Ch24IntrM",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
+
+            // Channel Interrupt Status Register ~ Offset 0x64
+            Registers.IntrStatus.Define(this)
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write | FieldMode.WriteOneToClear, name: "IntrStatus",
+                    valueProviderCallback: _ => 0x0)
+
+                ;
+
+            // De-bounce Enable Register ~ Offset 0x70
+            Registers.DeBounceEn.Define(this)
+                .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "DeBounceEn",
+                    valueProviderCallback: _ => 0x0)
+
+                ;
+
+            // De-bounce Control Register ~ Offset 0x74
+            Registers.DeBounceCtrl.Define(this)
+                .WithFlag(31, FieldMode.Read | FieldMode.Write, name: "DBClkSel",
+                    valueProviderCallback: _ => false)
+                .WithReservedBits(8, 23)
+                .WithValueField(0, 8, FieldMode.Read | FieldMode.Write, name: "DBPreScale",
+                    valueProviderCallback: _ => 0x0)
+                ;
+
         }
 
 
@@ -198,7 +346,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         private const uint PadKeyUnlockValue = 0x73;
         private const int PinsPerBank = 32;
 
-        private const int ATCGPIO100_GPIO_NUM = 32;
+        private const int ATCGPIO100_GPIO_NUM = 32; //number of gpio channels (pins)
 
         private enum DriveStrength
         {
