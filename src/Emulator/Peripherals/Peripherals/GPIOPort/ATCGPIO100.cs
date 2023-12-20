@@ -41,10 +41,10 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             var oldState = State[number];
             base.OnGPIO(number, value);
 
-            // if(inputEnable[number].Value && oldState != value)
-            // {
-            //     HandlePinStateChangeInterrupt(number, risingEdge: value);
-            // }
+            if(!channelDirReg[number] && oldState != value)
+            {
+                UpdateInterrupts();
+            }
         }
 
         public uint ReadDoubleWord(long offset)
@@ -90,25 +90,25 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 .WithFlag(30, FieldMode.Read, name: "Intr", valueProviderCallback: _ => ATCGPIO100_INTR_SUPPORT) 
                 .WithFlag(29, FieldMode.Read, name: "Debounce", valueProviderCallback: _ => ATCGPIO100_DEBOUNCE_SUPPORT)
                 .WithReservedBits(5,23)
-                .WithValueField(0, 5, FieldMode.Read, name:"ChannelNum",
-                    valueProviderCallback: _ => ATCGPIO100_GPIO_NUM)
+                .WithValueField(0, 5, FieldMode.Read, name:"ChannelNum", valueProviderCallback: _ => ATCGPIO100_GPIO_NUM)
             ;
 
             // Channel Data-In Register ~ Offset 0x20 - readonly
             Registers.DataIn.Define(this)
                 .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read, name: "DataIn", 
-                 valueProviderCallback: _ => ReturnArrayAsDoubleWord(dataInReg),
-                 writeCallback: (_, value) => this.LogUnhandledWrite(0x20, value))
-            ;
+                    valueProviderCallback: _ => ReturnArrayAsDoubleWord(dataInReg),
+                    writeCallback: (_, value) => this.LogUnhandledWrite(0x20, value))
+                ;
 
             // Channel Data-Out Register ~ Offset 0x24
             Registers.DataOut.Define(this)
                 .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "DataOut", 
                  valueProviderCallback: _ => ReturnArrayAsDoubleWord(dataOutReg), 
                  writeCallback: (_, value) => {
-                        for (var i = 0; i < dataOutReg.Length; i++){
+                        for (var i = 0; i < ATCGPIO100_GPIO_NUM; i++){
                             if (channelDirReg[i] == true){ //if channelDir is an output
                                 dataOutReg[i] = Convert.ToBoolean((value >> i) & 0x1);
+                                UpdateOutputPinState(i);
                             }
                             
                         }
@@ -119,18 +119,21 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             Registers.ChannelDir.Define(this)
                 .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "ChannelDir", 
                     valueProviderCallback: _ => ReturnArrayAsDoubleWord(channelDirReg), 
-                    writeCallback: (_, value) => editArray(channelDirReg, (int)value))
+                    writeCallback: (_, value) => {
+                        editArray(channelDirReg, (int)value);
+                        UpdateInterrupts();
+                    })
                 ;
 
             // Channel Data-Out Clear Register ~ Offset 0x2C
             Registers.DoutClear.Define(this)
                 .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.WriteOneToClear, name: "DoutClear", 
                     writeCallback: (_, value) => {
-                        for (var i = 0; i < dataOutReg.Length; i++){
+                        for (var i = 0; i < ATCGPIO100_GPIO_NUM; i++){
                             if (Convert.ToBoolean((value >> i) & 0x1) == true){
                                 dataOutReg[i] = !Convert.ToBoolean((value >> i) & 0x1);
-                            }
-                            
+                                UpdateOutputPinState(i);
+                            }                            
                         }
                     })
                 ;
@@ -142,6 +145,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                         for (var i = 0; i < dataOutReg.Length; i++){
                             if (Convert.ToBoolean((value >> i) & 0x1) == true){
                                 dataOutReg[i] = Convert.ToBoolean((value >> i) & 0x1);
+                                UpdateOutputPinState(i);
                             }
                         }
                     })
@@ -165,7 +169,10 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             Registers.IntrEn.Define(this)
                 .WithValueField(0, ATCGPIO100_GPIO_NUM, FieldMode.Read | FieldMode.Write, name: "IntEn",
                     valueProviderCallback: _ => ReturnArrayAsDoubleWord(interruptEnReg), 
-                    writeCallback: (_, value) => editArray(interruptEnReg, (int)value))
+                    writeCallback: (_, value) => {
+                        editArray(interruptEnReg, (int)value);
+                        UpdateInterrupts();
+                    })
                 ;
 
             // Channel (0~7) Interrupt Mode Register ~ Offset 0x54
@@ -319,9 +326,10 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                     valueProviderCallback: _ => ReturnArrayAsDoubleWord(interruptStatusReg), 
                     writeCallback: (_, value) => {
                         Console.WriteLine("IntrStatus: value = {0}", value);
-                        for (var i = 0; i < interruptStatusReg.Length; i++){
+                        for (var i = 0; i < ATCGPIO100_GPIO_NUM; i++){
                             if (Convert.ToBoolean((value >> i) & 0x1) == true){
                                 interruptStatusReg[i] = !Convert.ToBoolean((value >> i) & 0x1);
+                                UpdateInterrupts();
                             }                            
                         }
                     })
@@ -345,59 +353,45 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                     writeCallback: (_, value) => {DebouncePreScaleValue = (uint)value;},
                     valueProviderCallback: _ => DebouncePreScaleValue)
                 ;
-
         }
 
-
-        private void HandlePinStateChangeInterrupt(int pinIdx, bool risingEdge)
-        {
-            // var mode = interruptMode[pinIdx].Value;
-            // if(mode == InterruptEnable.EnabledOnAnyTransition
-            //     || (risingEdge && mode == InterruptEnable.EnabledOnRisingEdgeTransition)
-            //     || (!risingEdge && mode == InterruptEnable.EnabledOnFallingEdgeTransition))
-            // {
-            //     this.Log(LogLevel.Noisy, "Triggering IRQ #{0} on the {1} edge", pinIdx, risingEdge ? "rising" : "falling");
-            //     TriggerInterrupt(pinIdx);
-            // }
+        private void UpdateInterrupts(){
+            bool interrupt = false;
+            for (var i = 0; i < ATCGPIO100_GPIO_NUM; i++){
+                if(interruptEnReg[i] && !channelDirReg[i]){ //if pin i is an input
+                    interruptStatusReg[i] = Connections[i].IsSet;
+                    interrupt |= interruptEnReg[i] && interruptStatusReg[i];
+                }
+                else UpdateOutputPinState(i);
+                if (interrupt) break;
+            }
+            if(IRQ.IsSet != interrupt)
+            {
+                this.InfoLog("Changing IRQ from {0} to {1}", IRQ.IsSet, interrupt);
+            }
+            IRQ.Set(interrupt);
         }
 
-        private void SetOutputPinValue(int pinIdx, bool state)
-        {
-
-        }
-
-        private void TriggerInterrupt(int pinIdx)
-        {
-
-        }
-
-        private void TriggerInterruptInner(int irqBank, int banksPinOffset, bool n1Priority = false)
-        {
-            
-        }
-
-        private void UpdateInterrupt()
-        {
-            
-        }
-
-        private void UpdateOutputPinState(int pinIdx)
-        {
-            
+        private void UpdateOutputPinState(int pinIdx){
+            if (channelDirReg[pinIdx] && (Connections[pinIdx].IsSet != dataOutReg[pinIdx])){ //TODO: should we check if interruptStatusReg[pinIdx] != true as well?
+                    Connections[pinIdx].Set(dataOutReg[pinIdx]);
+                    this.Log(LogLevel.Info, "{0} output pin #{1}", dataOutReg[pinIdx] ? "Setting" : "Clearing", pinIdx);
+            }
         }
 
         private bool[] dataInReg = new bool[ATCGPIO100_GPIO_NUM];
         private bool[] dataOutReg = new bool[ATCGPIO100_GPIO_NUM];
         private bool[] channelDirReg = new bool[ATCGPIO100_GPIO_NUM]; //0: input, 1: output
-        private bool[] pullEnReg = new bool[ATCGPIO100_GPIO_NUM];
-        private bool[] pullTypeReg = new bool[ATCGPIO100_GPIO_NUM]; //0: pull-up, 1: pull-down
+        private bool[] pullEnReg = new bool[ATCGPIO100_GPIO_NUM]; //UNSUPPORTED
+        private bool[] pullTypeReg = new bool[ATCGPIO100_GPIO_NUM]; //0: pull-up, 1: pull-down, UNSUPPORTED
         private bool[] interruptEnReg = new bool[ATCGPIO100_GPIO_NUM];
-        private InterruptMode[] channelInterruptMode = new InterruptMode[ATCGPIO100_GPIO_NUM];
+        private InterruptMode[] channelInterruptMode = new InterruptMode[ATCGPIO100_GPIO_NUM]; //UNSUPPORTED
         private bool[] interruptStatusReg = new bool[ATCGPIO100_GPIO_NUM];
-        private bool[] deBounceEnReg = new bool[ATCGPIO100_GPIO_NUM];
-        private bool DebounceClkSelValue = new bool();
-        private uint DebouncePreScaleValue = new uint();
+        private bool[] deBounceEnReg = new bool[ATCGPIO100_GPIO_NUM]; //UNSUPPORTED
+        private bool DebounceClkSelValue = new bool(); //UNSUPPORTED
+        private uint DebouncePreScaleValue = new uint(); //UNSUPPORTED
 
+        //Configuration constants:
         private const int ATCGPIO100_GPIO_NUM = 32; //number of gpio channels (pins)
         private const bool ATCGPIO100_PULL_SUPPORT = false; //Pull option IS NOT configured
         private const bool ATCGPIO100_INTR_SUPPORT = true; //interrupt option IS configured
@@ -433,10 +427,10 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         private enum InterruptMode : uint
         {
             None = 0x0,
-            // Reserved = 0x1,
+         // Reserved = 0x1,
             HighLevel = 0x2,
             LowLevel = 0x3,
-            //Reserved = 0x4,
+         // Reserved = 0x4,
             NegativeEdge = 0x5,
             PositiveEdge = 0x6,
             DualEdge = 0x7
