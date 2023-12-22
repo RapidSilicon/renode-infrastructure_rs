@@ -6,9 +6,11 @@
 //
 using System;
 using Antmicro.Renode.Core;
+using Antmicro.Renode.Core.Structure;
 using Antmicro.Renode.Logging;
 using Antmicro.Renode.Peripherals.Timers;
 using Antmicro.Renode.Utilities;
+using Antmicro.Renode.Utilities.Binding;
 using Endianess = ELFSharp.ELF.Endianess;
 
 namespace Antmicro.Renode.Peripherals.CPU
@@ -16,45 +18,27 @@ namespace Antmicro.Renode.Peripherals.CPU
     public class Andes_N22 : RiscV32
     {
 
-        private enum AndestarV5CSR
+        public Andes_N22(IMachine machine, IRiscVTimeProvider timeProvider = null, string cpuType = "rv32imac", uint hartId = 0, uint resetVectorAddress = 0x0)
+            : base(timeProvider: timeProvider, cpuType: cpuType, machine: machine, hartId: hartId, allowUnalignedAccesses: true, nmiVectorLength: 1, nmiVectorAddress: resetVectorAddress)
         {
-            MTVT_RW = 0x307,
-            MDLMB_RW = 0x7c1,
-            MNVEC_RO = 0x7c3,
-            MXSTATUS_RW = 0x7c4,
-            MPFT_CTL_RW = 0x7c5,
-            MHSP_CTL_RW = 0x7c6,
-            MCACHE_CTL_RW = 0x7ca,
-            MMISC_CTL_RW = 0x7d0,
-            PUSHMXSTATUS_RW = 0x7eb, // Hook to CSRRWI
-            MIRQ_ENTRY_RW = 0x7ec,
-            MINTSEL_JAL = 0x7ed,
-            PUSHMCAUSE_RW = 0x7ee, // Hook to CSRRWI
-            PUSHMEPC_RW = 0x7ef, // Hook to CSRRWI
-            UITB_RW = 0x800,
-            UCODE_RW = 0x801,
-            MMSC_CFG_RO = 0xFC2
-        }
-        public Andes_N22(Machine machine, IRiscVTimeProvider timeProvider = null, uint hartId = 0, PrivilegeArchitecture privilegeArchitecture = PrivilegeArchitecture.Priv1_11, Endianess endianness = Endianess.LittleEndian, string cpuType = "rv32imac")
-            : base(null, cpuType, machine, hartId, privilegeArchitecture, endianness, allowUnalignedAccesses: true)
-        {
-            MXSTATUS = RegisterValue.Create(0,32);
-            AndestarV5CSR[] rw_csrs = {
+            this.resetVectorAddress = resetVectorAddress;
+            MXSTATUS = RegisterValue.Create(0, 32);
+            MMISC_CTL = RegisterValue.Create(0, 32);
+
+            AndestarV5CSR[] notImplementedRWCSRs = {
                 AndestarV5CSR.MTVT_RW, AndestarV5CSR.MDLMB_RW,
                 AndestarV5CSR.MXSTATUS_RW, AndestarV5CSR.MPFT_CTL_RW,
                 AndestarV5CSR.MHSP_CTL_RW, AndestarV5CSR.MCACHE_CTL_RW,
-                AndestarV5CSR.MMISC_CTL_RW, //AndestarV5CSR.PUSHMXSTATUS_RW,
                 AndestarV5CSR.MIRQ_ENTRY_RW, AndestarV5CSR.MINTSEL_JAL,
-                //AndestarV5CSR.PUSHMCAUSE_RW, //AndestarV5CSR.PUSHMEPC_RW,
                 AndestarV5CSR.UITB_RW, AndestarV5CSR.UCODE_RW};
-            AndestarV5CSR[] ro_csrs = { AndestarV5CSR.MNVEC_RO, AndestarV5CSR.MMSC_CFG_RO };
-            foreach (AndestarV5CSR csr in rw_csrs)
+            AndestarV5CSR[] notImplementedROCSRs = { AndestarV5CSR.MMSC_CFG_RO };
+            foreach (AndestarV5CSR csr in notImplementedRWCSRs)
             {
                 RegisterCSR((ulong)csr,
                     () => LogUnhandledCSRRead(csr.ToString()),
                     val => LogUnhandledCSRWrite(csr.ToString(), val));
             }
-            foreach (AndestarV5CSR csr in ro_csrs)
+            foreach (AndestarV5CSR csr in notImplementedROCSRs)
             {
                 RegisterCSR((ulong)csr,
                     () => LogUnhandledCSRRead(csr.ToString()),
@@ -63,6 +47,26 @@ namespace Antmicro.Renode.Peripherals.CPU
             RegisterCSR((ulong)AndestarV5CSR.PUSHMEPC_RW, () => 0u, GeneratePushCSRWrite(MEPC));
             RegisterCSR((ulong)AndestarV5CSR.PUSHMCAUSE_RW, () => 0u, GeneratePushCSRWrite(MCAUSE));
             RegisterCSR((ulong)AndestarV5CSR.PUSHMXSTATUS_RW, () => 0u, GeneratePushCSRWrite(MXSTATUS));
+            RegisterCSR((ulong)AndestarV5CSR.MNVEC_RO, () => NMIVectorAddress.Value, val => LogWriteOnReadOnlyCSR("MNVEC_RO", val));
+            RegisterCSR((ulong)AndestarV5CSR.MMISC_CTL_RW, () => MMISC_CTL, (w) =>
+            {
+                // For now, only support special logic for when NMI is modified
+                MMISC_CTL = w;
+                bool newNMI = BitHelper.IsBitSet(w, 9);
+                if (newNMI)
+                {
+                    NMIVectorAddress = MTVEC; 
+                }
+                else
+                {
+                    NMIVectorAddress = resetVectorAddress;
+                }
+            });
+
+        }
+        public override void Reset(){
+            base.Reset();
+            PC = resetVectorAddress;
         }
 
         private Action<ulong> GeneratePushCSRWrite(RegisterValue register)
@@ -78,7 +82,6 @@ namespace Antmicro.Renode.Peripherals.CPU
                 }
                 var uimm = write_val;
                 var addr = SP + (uimm << 2);
-                //Bus.WriteDoubleWord(addr, (uint) register.RawValue, this);
                 Bus.WriteDoubleWord(addr, register, this);
             };
             return result;
@@ -99,6 +102,35 @@ namespace Antmicro.Renode.Peripherals.CPU
             this.Log(LogLevel.Error, "Writing to RO CSR {0} value: 0x{1:X}", name, value);
         }
 
+        public override void OnNMI(int number, bool value, ulong? mcause = null)
+        {
+
+            bool newNmi = BitHelper.IsBitSet(MMISC_CTL, 9);
+            base.OnNMI(number, value, newNmi ? 0xFFFUL : 1);
+        }
+
         private RegisterValue MXSTATUS;
+        private RegisterValue MMISC_CTL;
+        private readonly uint resetVectorAddress;
+
+        private enum AndestarV5CSR
+        {
+            MTVT_RW = 0x307,
+            MDLMB_RW = 0x7c1,
+            MNVEC_RO = 0x7c3,
+            MXSTATUS_RW = 0x7c4,
+            MPFT_CTL_RW = 0x7c5,
+            MHSP_CTL_RW = 0x7c6,
+            MCACHE_CTL_RW = 0x7ca,
+            MMISC_CTL_RW = 0x7d0,
+            PUSHMXSTATUS_RW = 0x7eb, // Hook to CSRRWI
+            MIRQ_ENTRY_RW = 0x7ec,
+            MINTSEL_JAL = 0x7ed,
+            PUSHMCAUSE_RW = 0x7ee, // Hook to CSRRWI
+            PUSHMEPC_RW = 0x7ef, // Hook to CSRRWI
+            UITB_RW = 0x800,
+            UCODE_RW = 0x801,
+            MMSC_CFG_RO = 0xFC2
+        }
     }
 }
