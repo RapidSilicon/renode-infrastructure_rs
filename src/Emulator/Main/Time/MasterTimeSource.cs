@@ -110,6 +110,8 @@ namespace Antmicro.Renode.Time
         public new void Start()
         {
             this.Trace("Starting...");
+           
+            
             lock(locker)
             {
                 if(!base.Start())
@@ -129,6 +131,8 @@ namespace Antmicro.Renode.Time
         public new void Stop()
         {
             this.Trace("Stopping...");
+           
+            
             lock(locker)
             {
                 base.Stop();

@@ -71,6 +71,8 @@ namespace Antmicro.Renode.Time
             if(desiredFrequency > maxHz)
             {
                 result = (long)Math.Round(desiredFrequency / (double)maxHz);
+               // Logger.LogAs(parentForLogging, LogLevel.Warning, "result {0}",result);
+
                 error = Math.Abs((result * maxHz - desiredFrequency) / (double)desiredFrequency);
             }
             else

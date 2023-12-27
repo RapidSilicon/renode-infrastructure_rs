@@ -9,7 +9,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Antmicro.Renode.Core;
+using Antmicro.Renode.Peripherals;
 using Antmicro.Migrant;
+using Antmicro.Renode.Logging;
+using Antmicro.Renode.Utilities;
+
 
 namespace Antmicro.Renode.Time
 {
@@ -234,6 +239,7 @@ namespace Antmicro.Renode.Time
             }
 
             nearestTickIn = nearestTickIn.WithTicksMin((entry.Value - 1) / (ulong)entry.Ratio + 1);
+            
             return isReached;
         }
 
@@ -307,17 +313,24 @@ namespace Antmicro.Renode.Time
                 }
                 #endif
                 elapsed += time;
+                
                 totalElapsed += time;
+                
+                 // Logger.LogAs( parentForLogging, LogLevel.Info,"time{0}, elapsed {1}, totalElapsed", time, elapsed, totalElapsed  );
+                
                 if(nearestLimitIn > time && !immediately)
                 {
                     // nothing happens
                     nearestLimitIn -= time;
+                 
                     return;
                 }
 
                 if(updateAlreadyInProgress.Value)
                 {
                     reupdateNeeded.Value = true;
+                   // Console.WriteLine("Time increment");
+                    // Logger.LogAs(parentForLogging, LogLevel.Info, "reupdatedNeeded.Value {0}", reupdateNeeded.Value);
                 }
                 else
                 {
@@ -402,6 +415,7 @@ namespace Antmicro.Renode.Time
                 if(clockEntries[clockEntryIndex].Ratio > 0)
                 {
                     clockEntriesUpdateHandlers[clockEntryIndex] = HandleDirectionDescendingPositiveRatio;
+                    
                 }
                 else
                 {

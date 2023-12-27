@@ -9,6 +9,7 @@
 using System;
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Time;
+using Antmicro.Renode.Logging;
 
 namespace Antmicro.Renode.Peripherals.Timers
 {
@@ -16,15 +17,15 @@ namespace Antmicro.Renode.Peripherals.Timers
     {
         public LimitTimer(IClockSource clockSource, long frequency, IPeripheral owner, string localName, ulong limit = ulong.MaxValue, Direction direction = Direction.Descending, bool enabled = false, WorkMode workMode = WorkMode.Periodic, bool eventEnabled = false, bool autoUpdate = false, int divider = 1)
         {
-            if(limit == 0)
+            if (limit == 0)
             {
                 throw new ArgumentException("Limit cannot be zero.");
             }
-            if(divider == 0)
+            if (divider == 0)
             {
                 throw new ArgumentException("Divider cannot be zero.");
             }
-            if(frequency == 0)
+            if (frequency == 0)
             {
                 throw new ArgumentException("Frequency cannot be zero.");
             }
@@ -45,7 +46,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             InternalReset();
         }
 
-        protected LimitTimer(IClockSource clockSource, long frequency, ulong limit = ulong.MaxValue, Direction direction = Direction.Descending, bool enabled = false, WorkMode workMode = WorkMode.Periodic, bool eventEnabled = false, bool autoUpdate = false, int divider = 1) 
+        protected LimitTimer(IClockSource clockSource, long frequency, ulong limit = ulong.MaxValue, Direction direction = Direction.Descending, bool enabled = false, WorkMode workMode = WorkMode.Periodic, bool eventEnabled = false, bool autoUpdate = false, int divider = 1)
             : this(clockSource, frequency, null, null, limit, direction, enabled, workMode, eventEnabled, autoUpdate, divider)
         {
         }
@@ -54,14 +55,17 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             var clockEntry = clockSource.GetClockEntry(OnLimitReached);
             currentLimit = clockEntry.Period;
+            Console.WriteLine("getValueandLimit");
             return clockEntry.Value;
         }
 
         public uint Increment(ulong incrementBy)
         {
+
             var incValue = Value + incrementBy;
 
             Value = incValue % Limit;
+            Console.WriteLine("Increment");
 
             return (uint)(incValue / Limit);
         }
@@ -71,6 +75,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             var timesOverflown = (uint)(((Limit - 1 - Value) + decrementBy) / Limit);
 
             Value = Value + (Limit * timesOverflown) - decrementBy;
+            Console.WriteLine("decrement");
 
             return timesOverflown;
         }
@@ -79,11 +84,13 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             get
             {
+                Console.WriteLine("Limittimer frequency");
                 return frequency;
+
             }
             set
             {
-                if(value == 0)
+                if (value == 0)
                 {
                     throw new ArgumentException("Frequency cannot be zero.");
                 }
@@ -98,15 +105,17 @@ namespace Antmicro.Renode.Peripherals.Timers
             get
             {
                 return clockSource.GetClockEntry(OnLimitReached).Value;
+
             }
             set
             {
-                if(value > initialLimit)
+                if (value > initialLimit)
                 {
                     throw new ArgumentException("Value cannot be larger than limit");
                 }
 
                 clockSource.ExchangeClockEntryWith(OnLimitReached, oldEntry => oldEntry.With(value: value));
+                Console.WriteLine("value property set");
             }
         }
 
@@ -130,11 +139,11 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
             set
             {
-                if(value == divider)
+                if (value == divider)
                 {
                     return;
                 }
-                if(value == 0)
+                if (value == 0)
                 {
                     throw new ArgumentException("Divider cannot be zero.");
                 }
@@ -154,7 +163,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 clockSource.ExchangeClockEntryWith(OnLimitReached, oldEntry =>
                 {
-                    if(AutoUpdate)
+                    if (AutoUpdate)
                     {
                         return oldEntry.With(period: value, value: oldEntry.Direction == Direction.Ascending ? 0 : value);
                     }
@@ -172,15 +181,16 @@ namespace Antmicro.Renode.Peripherals.Timers
         public bool Enabled
         {
             get
-            {  //Console.WriteLine("Enabled property get");
+            {
+                Console.WriteLine("Enabled get");
                 return clockSource.GetClockEntry(OnLimitReached).Enabled;
-                
+
             }
             set
-            {   //Console.WriteLine("Enabled property set");
+            {
                 clockSource.ExchangeClockEntryWith(OnLimitReached, oldEntry => oldEntry.With(enabled: value),
                     () => { throw new InvalidOperationException("Should not reach here."); });
-                    // should not reach here - limit should already be set in ctor
+                // should not reach here - limit should already be set in ctor
             }
         }
 
@@ -188,19 +198,19 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             get
             {
-                //Console.WriteLine("EventEnabled");
-                lock(irqSync)
+
+                lock (irqSync)
                 {
                     return eventEnabled;
-                    
-            }
+
+                }
             }
             set
-            {   //Console.WriteLine("EventEnabledset");
-                lock(irqSync)
+            {
+                lock (irqSync)
                 {
                     eventEnabled = value;
-                  //  Console.WriteLine("EventEnabledinnerset");
+
 
                 }
             }
@@ -210,7 +220,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             get
             {
-                lock(irqSync)
+                lock (irqSync)
                 {
                     return rawInterrupt && eventEnabled;
                 }
@@ -221,7 +231,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             get
             {
-                lock(irqSync)
+                lock (irqSync)
                 {
                     return rawInterrupt;
                 }
@@ -230,7 +240,7 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         public void ClearInterrupt()
         {
-            lock(irqSync)
+            lock (irqSync)
             {
                 rawInterrupt = false;
             }
@@ -240,11 +250,11 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             clockSource.ExchangeClockEntryWith(OnLimitReached, oldEntry =>
             {
-                    if(oldEntry.Direction == Direction.Ascending)
-                    {
-                        return oldEntry.With(value: 0);
-                    }
-                    return oldEntry.With(value: oldEntry.Period);
+                if (oldEntry.Direction == Direction.Ascending)
+                {
+                    return oldEntry.With(value: 0);
+                }
+                return oldEntry.With(value: oldEntry.Period);
             });
         }
 
@@ -280,7 +290,7 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         protected virtual void OnLimitReached()
         {
-            lock(irqSync)
+            lock (irqSync)
             {
                 rawInterrupt = true;
 
@@ -290,7 +300,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 }
 
                 var alarm = LimitReached;
-                if(alarm != null)
+                if (alarm != null)
                 {
                     alarm();
                 }
@@ -302,8 +312,8 @@ namespace Antmicro.Renode.Peripherals.Timers
             frequency = initialFrequency;
             divider = initialDivider;
 
-            var clockEntry = new ClockEntry(initialLimit,  frequency / divider, OnLimitReached, owner, localName, initialEnabled, initialDirection, initialWorkMode)
-                { Value = initialDirection == Direction.Ascending ? 0 : initialLimit };
+            var clockEntry = new ClockEntry(initialLimit, frequency / divider, OnLimitReached, owner, localName, initialEnabled, initialDirection, initialWorkMode)
+            { Value = initialDirection == Direction.Ascending ? 0 : initialLimit };
 
             clockSource.ExchangeClockEntryWith(OnLimitReached, x => clockEntry, () => clockEntry);
             EventEnabled = initialEventEnabled;
@@ -323,7 +333,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         private readonly bool initialAutoUpdate;
         private readonly int initialDivider;
         private readonly IPeripheral owner;
-        private readonly string localName; 
+        private readonly string localName;
 
         private bool eventEnabled;
         private bool rawInterrupt;

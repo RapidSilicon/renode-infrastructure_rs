@@ -5,6 +5,14 @@
 // Full license text is available in 'licenses/MIT.txt'.
 //
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Antmicro.Renode.Core;
+using Antmicro.Renode.Peripherals;
+using Antmicro.Migrant;
+using Antmicro.Renode.Logging;
+using Antmicro.Renode.Utilities;
 
 namespace Antmicro.Renode.Time
 {
@@ -20,11 +28,16 @@ namespace Antmicro.Renode.Time
         {
             TimeElapsed = interval;
             Domain = domain;
+
+            //Console.WriteLine("Timestamp.cs");
+
         }
 
         public override string ToString()
         {
             return $"[Domain = {Domain}, TimeElapsed = {TimeElapsed}]";
+            
+
         }
 
         public TimeInterval TimeElapsed { get; private set; }
