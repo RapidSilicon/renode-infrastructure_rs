@@ -199,14 +199,6 @@ namespace Antmicro.Renode.Peripherals.Timers
 
     }
 
-    private void ResetInnerStatus()
-    {
-      firstStageUnlocked = false;
-      registersUnlocked = false;
-
-    }
-
-
     private void DefineRegisters()
     {
       Registers.Control.Define(this)
