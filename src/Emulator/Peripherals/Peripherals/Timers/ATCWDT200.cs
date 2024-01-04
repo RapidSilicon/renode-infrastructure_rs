@@ -45,13 +45,13 @@ namespace Antmicro.Renode.Peripherals.Timers
 
       resetTimer = new LimitTimer(machine.ClockSource, timerFrequency, this, "reset_timer", InitialLimit2, workMode: WorkMode.OneShot, eventEnabled: true);
       resetTimer.LimitReached += () =>
-           {
-             IRQ1.Set();
-             this.InfoLog("Sending  reset signal {0}", IRQ1.IsSet);
-             this.InfoLog("reset limit reached");
-             // machine.RequestReset();
+      {
+        IRQ1.Set();
+        this.InfoLog("Sending  reset signal {0}", IRQ1.IsSet);
+        this.InfoLog("reset limit reached");
+        // machine.RequestReset();
 
-           };
+      };
 
     }
 
