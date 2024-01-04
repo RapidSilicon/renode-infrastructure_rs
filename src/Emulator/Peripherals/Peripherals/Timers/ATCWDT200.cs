@@ -38,7 +38,7 @@ namespace Antmicro.Renode.Peripherals.Timers
 
         UpdateInterrupts();
         resetTimer.Enabled = true;
-        this.InfoLog("enable watchdog reset timer {0}", resetTimer.Enabled);
+        this.InfoLog("Enable watchdog reset timer {0}", resetTimer.Enabled);
         resetTimer.Value = resetTimer.Limit;
 
       };
