@@ -36,7 +36,7 @@ namespace Antmicro.Renode.Time
         {
             get
             {
-                lock(sync)
+                lock (sync)
                 {
                     return nearestLimitIn;
                 }
@@ -45,12 +45,12 @@ namespace Antmicro.Renode.Time
 
         public void Advance(TimeInterval time, bool immediately = false)
         {
-            lock(sync)
+            lock (sync)
             {
-                if(time > nearestLimitIn && !skipAdvancesHigherThanNearestLimit)
+                if (time > nearestLimitIn && !skipAdvancesHigherThanNearestLimit)
                 {
                     var left = time;
-                    while(left.Ticks > 0)
+                    while (left.Ticks > 0)
                     {
                         var thisTurn = TimeInterval.Min(nearestLimitIn, left);
                         left -= thisTurn;
@@ -66,7 +66,7 @@ namespace Antmicro.Renode.Time
 
         public virtual void ExecuteInLock(Action action)
         {
-            lock(sync)
+            lock (sync)
             {
                 action();
             }
@@ -74,9 +74,9 @@ namespace Antmicro.Renode.Time
 
         public virtual void AddClockEntry(ClockEntry entry)
         {
-            lock(sync)
+            lock (sync)
             {
-                if(clockEntries.FindIndex(x => x.Handler == entry.Handler) != -1)
+                if (clockEntries.FindIndex(x => x.Handler == entry.Handler) != -1)
                 {
                     throw new ArgumentException("A clock entry with given handler already exists in the clock source.");
                 }
@@ -92,14 +92,14 @@ namespace Antmicro.Renode.Time
         public virtual void ExchangeClockEntryWith(Action handler, Func<ClockEntry, ClockEntry> visitor,
             Func<ClockEntry> factoryIfNonExistent)
         {
-            lock(sync)
+            lock (sync)
             {
                 UpdateLimits();
                 var indexOfEntry = clockEntries.FindIndex(x => x.Handler == handler);
 
-                if(indexOfEntry == -1)
+                if (indexOfEntry == -1)
                 {
-                    if(factoryIfNonExistent != null)
+                    if (factoryIfNonExistent != null)
                     {
                         clockEntries.Add(factoryIfNonExistent());
                         clockEntriesUpdateHandlers.Add(null);
@@ -121,25 +121,26 @@ namespace Antmicro.Renode.Time
 
         public virtual ClockEntry GetClockEntry(Action handler)
         {
-            lock(sync)
+            lock (sync)
             {
                 UpdateLimits();
                 var result = clockEntries.FirstOrDefault(x => x.Handler == handler);
-                if(result.Handler == null)
+                if (result.Handler == null)
                 {
                     throw new KeyNotFoundException();
                 }
+
                 return result;
             }
         }
 
         public virtual void GetClockEntryInLockContext(Action handler, Action<ClockEntry> visitor)
         {
-            lock(sync)
+            lock (sync)
             {
                 UpdateLimits();
                 var result = clockEntries.FirstOrDefault(x => x.Handler == handler);
-                if(result.Handler == null)
+                if (result.Handler == null)
                 {
                     throw new KeyNotFoundException();
                 }
@@ -149,7 +150,7 @@ namespace Antmicro.Renode.Time
 
         public IEnumerable<ClockEntry> GetAllClockEntries()
         {
-            lock(sync)
+            lock (sync)
             {
                 UpdateLimits();
                 return clockEntries.ToList();
@@ -159,11 +160,11 @@ namespace Antmicro.Renode.Time
         public virtual bool TryRemoveClockEntry(Action handler)
         {
             int oldCount;
-            lock(sync)
+            lock (sync)
             {
                 oldCount = clockEntries.Count;
                 var indexToRemove = clockEntries.FindIndex(x => x.Handler == handler);
-                if(indexToRemove == -1)
+                if (indexToRemove == -1)
                 {
                     return false;
                 }
@@ -179,7 +180,7 @@ namespace Antmicro.Renode.Time
         public virtual TimeInterval CurrentValue
         {
             get
-            {
+            {   
                 return totalElapsed;
             }
         }
@@ -188,7 +189,7 @@ namespace Antmicro.Renode.Time
         {
             int oldCount;
             IEnumerable<ClockEntry> result;
-            lock(sync)
+            lock (sync)
             {
                 oldCount = clockEntries.Count;
                 result = clockEntries.ToArray();
@@ -201,9 +202,9 @@ namespace Antmicro.Renode.Time
 
         public void AddClockEntries(IEnumerable<ClockEntry> entries)
         {
-            lock(sync)
+            lock (sync)
             {
-                foreach(var entry in entries)
+                foreach (var entry in entries)
                 {
                     AddClockEntry(entry);
                 }
@@ -214,7 +215,7 @@ namespace Antmicro.Renode.Time
         {
             get
             {
-                lock(sync)
+                lock (sync)
                 {
                     return clockEntries.Count > 0;
                 }
@@ -228,7 +229,7 @@ namespace Antmicro.Renode.Time
             var ticksByRatio = time.Ticks * (ulong)entry.Ratio;
             var isReached = ticksByRatio >= entry.Value;
             entry.ValueResiduum = 0;
-            if(isReached)
+            if (isReached)
             {
                 entry.Value = entry.Period;
                 entry = entry.With(enabled: entry.Enabled & (entry.WorkMode != WorkMode.OneShot));
@@ -239,7 +240,7 @@ namespace Antmicro.Renode.Time
             }
 
             nearestTickIn = nearestTickIn.WithTicksMin((entry.Value - 1) / (ulong)entry.Ratio + 1);
-            
+
             return isReached;
         }
 
@@ -250,7 +251,7 @@ namespace Antmicro.Renode.Time
             var isReached = ticksByRatio >= entry.Value;
             entry.ValueResiduum = (time.Ticks + entry.ValueResiduum) % ratio;
 
-            if(isReached)
+            if (isReached)
             {
                 // TODO: maybe issue warning if its lower than zero
                 entry.Value = entry.Period;
@@ -272,7 +273,7 @@ namespace Antmicro.Renode.Time
             entry.Value += time.Ticks * (ulong)entry.Ratio;
             entry.ValueResiduum = 0;
 
-            if(entry.Value >= entry.Period)
+            if (entry.Value >= entry.Period)
             {
                 flag = true;
                 entry.Value = 0;
@@ -291,7 +292,7 @@ namespace Antmicro.Renode.Time
             entry.Value += (time.Ticks + entry.ValueResiduum) / ratio;
             entry.ValueResiduum = (time.Ticks + entry.ValueResiduum) % ratio;
 
-            if(entry.Value >= entry.Period)
+            if (entry.Value >= entry.Period)
             {
                 flag = true;
                 entry.Value = 0;
@@ -304,7 +305,7 @@ namespace Antmicro.Renode.Time
 
         private void AdvanceInner(TimeInterval time, bool immediately)
         {
-            lock(sync)
+            lock (sync)
             {
                 #if DEBUG
                 if(time > nearestLimitIn && !skipAdvancesHigherThanNearestLimit)
@@ -313,37 +314,36 @@ namespace Antmicro.Renode.Time
                 }
                 #endif
                 elapsed += time;
-                
+
                 totalElapsed += time;
-                
-                 // Logger.LogAs( parentForLogging, LogLevel.Info,"time{0}, elapsed {1}, totalElapsed", time, elapsed, totalElapsed  );
-                
-                if(nearestLimitIn > time && !immediately)
+
+
+                if (nearestLimitIn > time && !immediately)
                 {
                     // nothing happens
                     nearestLimitIn -= time;
-                 
+
                     return;
                 }
 
-                if(updateAlreadyInProgress.Value)
+                if (updateAlreadyInProgress.Value)
                 {
                     reupdateNeeded.Value = true;
-                   // Console.WriteLine("Time increment");
-                    // Logger.LogAs(parentForLogging, LogLevel.Info, "reupdatedNeeded.Value {0}", reupdateNeeded.Value);
+
+
                 }
                 else
                 {
                     var alreadyRunHandlers = new List<Action>();
                     Update(elapsed, ref alreadyRunHandlers);
                     // Check if another update was attempted in the meantime, e.g., a clock entry was updated within the handlers.
-                    while(reupdateNeeded.Value)
+                    while (reupdateNeeded.Value)
                     {
                         reupdateNeeded.Value = false;
                         Update(TimeInterval.Empty, ref alreadyRunHandlers);
                     }
                 }
-
+               
                 elapsed = TimeInterval.Empty;
             }
         }
@@ -351,7 +351,7 @@ namespace Antmicro.Renode.Time
         private void NotifyNumberOfEntriesChanged(int oldValue, int newValue)
         {
             var numberOfEntriesChanged = NumberOfEntriesChanged;
-            if(numberOfEntriesChanged != null)
+            if (numberOfEntriesChanged != null)
             {
                 numberOfEntriesChanged(oldValue, newValue);
             }
@@ -360,29 +360,30 @@ namespace Antmicro.Renode.Time
         private void UpdateLimits()
         {
             AdvanceInner(TimeInterval.Empty, true);
+
         }
 
         private void Update(TimeInterval time, ref List<Action> alreadyRunHandlers)
         {
-            if(updateAlreadyInProgress.Value)
+            if (updateAlreadyInProgress.Value)
             {
                 return;
             }
             try
             {
                 updateAlreadyInProgress.Value = true;
-                lock(sync)
+                lock (sync)
                 {
                     nearestLimitIn = TimeInterval.Maximal;
-                    for(var i = 0; i < clockEntries.Count; i++)
+                    for (var i = 0; i < clockEntries.Count; i++)
                     {
                         var clockEntry = clockEntries[i];
                         var updateHandler = clockEntriesUpdateHandlers[i];
-                        if(!clockEntry.Enabled)
+                        if (!clockEntry.Enabled)
                         {
                             continue;
                         }
-                        if(updateHandler(ref clockEntry, time, ref nearestLimitIn) && !alreadyRunHandlers.Contains(clockEntry.Handler))
+                        if (updateHandler(ref clockEntry, time, ref nearestLimitIn) && !alreadyRunHandlers.Contains(clockEntry.Handler))
                         {
                             toNotify.Add(clockEntry.Handler);
                         }
@@ -391,7 +392,7 @@ namespace Antmicro.Renode.Time
                 }
                 try
                 {
-                    foreach(var action in toNotify)
+                    foreach (var action in toNotify)
                     {
                         action();
                         alreadyRunHandlers.Add(action);
@@ -410,12 +411,12 @@ namespace Antmicro.Renode.Time
 
         private void UpdateUpdateHandler(int clockEntryIndex)
         {
-            if(clockEntries[clockEntryIndex].Direction == Direction.Descending)
+            if (clockEntries[clockEntryIndex].Direction == Direction.Descending)
             {
-                if(clockEntries[clockEntryIndex].Ratio > 0)
+                if (clockEntries[clockEntryIndex].Ratio > 0)
                 {
                     clockEntriesUpdateHandlers[clockEntryIndex] = HandleDirectionDescendingPositiveRatio;
-                    
+
                 }
                 else
                 {
@@ -424,7 +425,7 @@ namespace Antmicro.Renode.Time
             }
             else
             {
-                if(clockEntries[clockEntryIndex].Ratio > 0)
+                if (clockEntries[clockEntryIndex].Ratio > 0)
                 {
                     clockEntriesUpdateHandlers[clockEntryIndex] = HandleDirectionAscendingPositiveRatio;
                 }

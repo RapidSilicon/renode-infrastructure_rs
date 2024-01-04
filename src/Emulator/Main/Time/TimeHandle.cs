@@ -571,9 +571,10 @@ namespace Antmicro.Renode.Time
         /// Calls <see cref="StartRequested"/> event.
         /// </summary>
         public void RequestStart()
-        {
+        {  
             this.Trace();
             StartRequested?.Invoke();
+            
         }
 
         /// <summary>
@@ -642,6 +643,7 @@ namespace Antmicro.Renode.Time
                     {
                         TimeSource.ReportHandleActive();
                         RequestStart();
+                       
                     }
                 }
             }

@@ -55,7 +55,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             var clockEntry = clockSource.GetClockEntry(OnLimitReached);
             currentLimit = clockEntry.Period;
-            Console.WriteLine("getValueandLimit");
+
             return clockEntry.Value;
         }
 
@@ -84,7 +84,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             get
             {
-                Console.WriteLine("Limittimer frequency");
+               
                 return frequency;
 
             }
@@ -113,9 +113,9 @@ namespace Antmicro.Renode.Peripherals.Timers
                 {
                     throw new ArgumentException("Value cannot be larger than limit");
                 }
-
+              
                 clockSource.ExchangeClockEntryWith(OnLimitReached, oldEntry => oldEntry.With(value: value));
-                Console.WriteLine("value property set");
+                
             }
         }
 
@@ -182,7 +182,7 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             get
             {
-                Console.WriteLine("Enabled get");
+
                 return clockSource.GetClockEntry(OnLimitReached).Enabled;
 
             }

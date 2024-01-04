@@ -64,7 +64,7 @@ namespace Antmicro.Renode.Time
             using(this.ObtainSourceActiveState())
             {
                 while(!isDisposed && period.Ticks > 0)
-                {
+                {   
                     InnerExecute(out var timeElapsed, period);
                     period -= timeElapsed;
                 }
@@ -122,6 +122,7 @@ namespace Antmicro.Renode.Time
                 dispatcherThread = new Thread(Dispatcher) { Name = "MasterTimeSource Dispatcher", IsBackground = true };
                 dispatcherThread.Start();
                 this.Trace("Started");
+                
             }
         }
 
