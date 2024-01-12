@@ -245,7 +245,7 @@ namespace Antmicro.Renode.Peripherals.Timers
               writeCallback: (_, value) =>{
                 if (CheckifUnlock(Registers.Control))
                 {
-                  interruptTimer.Limit = interruptinterval((int)value);
+                  interruptTimer.Limit = InterruptInterval((int)value);
                   this.InfoLog("Interrupt interval set to {0}", interruptTimer.Limit);
                 }
               })
@@ -255,7 +255,7 @@ namespace Antmicro.Renode.Peripherals.Timers
               {
                 if (CheckifUnlock(Registers.Control))
                 {
-                  resetTimer.Limit = resetinterval((int)value);
+                  resetTimer.Limit = ResetInterval((int)value);
                   this.InfoLog("Reset interval set to {0}", resetTimer.Limit);
                 }
               }
