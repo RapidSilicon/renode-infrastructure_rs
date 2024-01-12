@@ -29,28 +29,24 @@ namespace Antmicro.Renode.Peripherals.Timers
       IRQ0 = new GPIO();
       IRQ1 = new GPIO();
 
-
       interruptTimer = new LimitTimer(machine.ClockSource, timerFrequency, this, "interrupt_timer", InitialLimit1, workMode: WorkMode.OneShot, eventEnabled: true);
       interruptTimer.LimitReached += () =>
       {
-        this.InfoLog("interrupt limit reached");
+        this.InfoLog("Interrupt timer limit reached");
         interruptPending.Value = true;
 
         UpdateInterrupts();
         resetTimer.Enabled = true;
-        this.InfoLog("Enable watchdog reset timer {0}", resetTimer.Enabled);
+        this.InfoLog("Enable reset timer");
         resetTimer.Value = resetTimer.Limit;
-
       };
 
       resetTimer = new LimitTimer(machine.ClockSource, timerFrequency, this, "reset_timer", InitialLimit2, workMode: WorkMode.OneShot, eventEnabled: true);
       resetTimer.LimitReached += () =>
       {
         IRQ1.Set();
-        this.InfoLog("Sending  reset signal {0}", IRQ1.IsSet);
-        this.InfoLog("reset limit reached");
+        this.InfoLog("Sending reset signal");
         // machine.RequestReset();
-
       };
 
     }
@@ -63,8 +59,7 @@ namespace Antmicro.Renode.Peripherals.Timers
       IRQ0.Unset();
       IRQ1.Unset();
       resetSequence = ResetSequence.WaitForUnlock;
-      this.InfoLog("Watchdog timer reset");
-
+      this.InfoLog("Timer reset");
     }
 
     private bool CheckifUnlock(Registers reg)
@@ -72,14 +67,13 @@ namespace Antmicro.Renode.Peripherals.Timers
       if (registersUnlocked)
       {
         return true;
-
       }
 
       this.Log(LogLevel.Warning, "Writing to {0} is allowed only when the register is unlocked", reg);
       return false;
     }
 
-    private ulong resetinterval(int value)
+    private ulong ResetInterval(int value)
     {
       ulong interval;
       switch (value)
@@ -114,10 +108,9 @@ namespace Antmicro.Renode.Peripherals.Timers
       }
 
       return interval;
-
     }
 
-    private ulong interruptinterval(int value)
+    private ulong InterruptInterval(int value)
     {
       ulong interval;
       switch (value)
@@ -189,14 +182,12 @@ namespace Antmicro.Renode.Peripherals.Timers
       if (interruptTimer.EventEnabled && interruptPending.Value)
       {
         IRQ0.Set();
-        this.InfoLog("Sending  interrupt signal {0}", IRQ0.IsSet);
-
+        this.InfoLog("Sending interval interrupt signal");
       }
       else
       {
         IRQ0.Unset();
       }
-
     }
 
     private void DefineRegisters()
@@ -209,7 +200,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 {
                   interruptTimer.Enabled = value;
                   interruptTimer.Value = interruptTimer.Limit;
-                  this.InfoLog("enable watchdog {0}", interruptTimer.Enabled);               
+                  this.InfoLog("Timer enabled");               
                 }
               })
 
@@ -219,7 +210,11 @@ namespace Antmicro.Renode.Peripherals.Timers
                 if (CheckifUnlock(Registers.Control))
                 {
                   Control_ChClk = (bool)value;
-                  this.InfoLog("Clock select is {0}", Control_ChClk);
+                  if (value) {
+                    this.InfoLog("Peripheral clock selected");
+                  } else {
+                    this.InfoLog("External clock selected");
+                  }
                 }
               },
               valueProviderCallback: _ => { return Control_ChClk; })
@@ -231,7 +226,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 if (CheckifUnlock(Registers.Control))
                 {
                   interruptTimer.EventEnabled = value;
-                  this.InfoLog("interrupt enable {0}", interruptTimer.EventEnabled);
+                  this.InfoLog("Interrupt timer enable");
                 }
               })
 
@@ -242,7 +237,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                if (CheckifUnlock(Registers.Control))
                {
                  resetTimer.EventEnabled = value;
-                 this.InfoLog("reset enable {0}", resetTimer.EventEnabled);
+                 this.InfoLog("Reset timer enable");
                }
              })
 
@@ -251,7 +246,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 if (CheckifUnlock(Registers.Control))
                 {
                   interruptTimer.Limit = interruptinterval((int)value);
-                  this.InfoLog("interrupt interval set to {0}", interruptTimer.Limit);
+                  this.InfoLog("Interrupt interval set to {0}", interruptTimer.Limit);
                 }
               })
 
@@ -261,7 +256,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 if (CheckifUnlock(Registers.Control))
                 {
                   resetTimer.Limit = resetinterval((int)value);
-                  this.InfoLog("reset interval set to {0}", resetTimer.Limit);
+                  this.InfoLog("Reset interval set to {0}", resetTimer.Limit);
                 }
               }
               )
@@ -276,13 +271,12 @@ namespace Antmicro.Renode.Peripherals.Timers
                 if (CheckifUnlock(Registers.Restart))
                 {
                   resetSequence = ResetSequence.WaitForRestart;
-                  this.InfoLog("Enable write to restart register");
-                  
+                  this.InfoLog("Write enable for restart register");
 
                   if (value == RESTART_NUM && resetSequence == ResetSequence.WaitForRestart)
                   {
                     resetSequence = ResetSequence.WaitForUnlock;
-                    this.InfoLog("Watchdog timer restarted {0}", interruptTimer.Limit);
+                    this.InfoLog("Timer restarted to {0}", interruptTimer.Limit);
 
                     interruptTimer.Value = interruptTimer.Limit;
                     resetTimer.Value = resetTimer.Limit;
@@ -293,9 +287,8 @@ namespace Antmicro.Renode.Peripherals.Timers
                 }
                 else
                 {
-                  this.InfoLog("restart register is write protected");
+                  this.InfoLog("Restart register is write protected");
                   resetSequence = ResetSequence.WaitForUnlock;
-
                 }
               }
               )
@@ -348,7 +341,6 @@ namespace Antmicro.Renode.Peripherals.Timers
     private enum ResetSequence
     {
       WaitForUnlock,
-
       WaitForRestart
     }
 
