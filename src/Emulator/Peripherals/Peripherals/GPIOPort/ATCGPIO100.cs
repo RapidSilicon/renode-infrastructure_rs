@@ -58,6 +58,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             // check for interrupt events
             if (BitHelper.IsBitSet(interruptEnReg, (byte)number))
             {
+
                 bool positiveEdge = (!oldValue) && value;
                 bool negativeEdge = oldValue && (!value);
                 bool dualEdge = positiveEdge || negativeEdge;
@@ -211,15 +212,20 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                     })
                 ;
 
+
             // Channel (0~7) Interrupt Mode Register ~ Offset 0x54
             var intrMode0 = Registers.IntrMode0.Define(this);
             for (int i = 0; i < 8; i++)
             {
                 var offset = 4 * i;
-                intrMode0
-                .WithValueField(offset, 3, FieldMode.Read | FieldMode.Write, name: $"Ch{i}IntrM",
-                    valueProviderCallback: _ => { return (uint)channelInterruptMode[i]; },
-                    writeCallback: (_, value) => { channelInterruptMode[i] = (InterruptMode)(uint)value; })
+                var startIndex = i + 0;
+                intrMode0 = intrMode0
+                .WithValueField(offset, 3, FieldMode.Read | FieldMode.Write, name: $"Ch{startIndex}IntrM",
+                    valueProviderCallback: _ => (uint)channelInterruptMode[startIndex],
+                    writeCallback: (_, value) =>
+                    {
+                        channelInterruptMode[startIndex] = (InterruptMode)(uint)value;
+                    })
                 .WithReservedBits(offset + 3, 1);
             }
 
@@ -229,10 +235,13 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             {
                 var offset = 4 * i;
                 var startIndex = i + 8;
-                intrMode1
+                intrMode1 = intrMode1
                 .WithValueField(offset, 3, FieldMode.Read | FieldMode.Write, name: $"Ch{startIndex}IntrM",
-                    valueProviderCallback: _ => { return (uint)channelInterruptMode[startIndex]; },
-                    writeCallback: (_, value) => { channelInterruptMode[startIndex] = (InterruptMode)(uint)value; })
+                    valueProviderCallback: _ => (uint)channelInterruptMode[startIndex],
+                    writeCallback: (_, value) =>
+                    {
+                        channelInterruptMode[startIndex] = (InterruptMode)(uint)value;
+                    })
                 .WithReservedBits(offset + 3, 1);
             }
 
@@ -242,10 +251,13 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             {
                 var offset = 4 * i;
                 var startIndex = i + 16;
-                intrMode2
+                intrMode2 = intrMode2
                 .WithValueField(offset, 3, FieldMode.Read | FieldMode.Write, name: $"Ch{startIndex}IntrM",
-                    valueProviderCallback: _ => { return (uint)channelInterruptMode[startIndex]; },
-                    writeCallback: (_, value) => { channelInterruptMode[startIndex] = (InterruptMode)(uint)value; })
+                    valueProviderCallback: _ => (uint)channelInterruptMode[startIndex],
+                    writeCallback: (_, value) =>
+                    {
+                        channelInterruptMode[startIndex] = (InterruptMode)(uint)value;
+                    })
                 .WithReservedBits(offset + 3, 1);
             }
 
@@ -255,10 +267,13 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             {
                 var offset = 4 * i;
                 var startIndex = i + 24;
-                intrMode3
+                intrMode3 = intrMode3
                 .WithValueField(offset, 3, FieldMode.Read | FieldMode.Write, name: $"Ch{startIndex}IntrM",
-                    valueProviderCallback: _ => { return (uint)channelInterruptMode[startIndex]; },
-                    writeCallback: (_, value) => { channelInterruptMode[startIndex] = (InterruptMode)(uint)value; })
+                    valueProviderCallback: _ => (uint)channelInterruptMode[startIndex],
+                    writeCallback: (_, value) =>
+                    {
+                        channelInterruptMode[startIndex] = (InterruptMode)(uint)value;
+                    })
                 .WithReservedBits(offset + 3, 1);
             }
 
