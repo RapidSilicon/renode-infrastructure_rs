@@ -332,14 +332,14 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         private uint dataInReg = 0x0;
         private uint dataOutReg = 0x0;
         private uint channelDirReg = 0x0;
-        private uint pullEnReg = 0x0; //UNSUPPORTED
-        private uint pullTypeReg = 0x0; //0: pull-up, 1: pull-down, UNSUPPORTED
+        private uint pullEnReg = 0x0; 
+        private uint pullTypeReg = 0x0; // dummy, Renode does not support tristate pins
         private uint interruptEnReg = 0x0;
-        private readonly InterruptMode[] channelInterruptMode; //UNSUPPORTED
+        private readonly InterruptMode[] channelInterruptMode; 
         private uint interruptStatusReg = 0x0;
-        private uint deBounceEnReg = 0x0; //UNSUPPORTED
-        private bool DebounceClkSelValue = false; //UNSUPPORTED
-        private uint DebouncePreScaleValue = 0x0; //UNSUPPORTED
+        private uint deBounceEnReg = 0x0; // dummy
+        private bool DebounceClkSelValue = false;  // dummy
+        private uint DebouncePreScaleValue = 0x0;  // dummy
 
         //Configuration constants:
         private readonly int cfgGpioNum; //number of gpio channels (pins)
