@@ -5,10 +5,9 @@ using Antmicro.Renode.Peripherals.CPU;
 
 namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
-    public class RS_SystemControlUnit<T> : BasicDoubleWordPeripheral, IKnownSize, IGPIOReceiver
-        where T : BaseCPU, ICPUWithNMI
+    public class RS_SystemControlUnit : BasicDoubleWordPeripheral, IKnownSize, IGPIOReceiver
     {
-        public RS_SystemControlUnit(IMachine machine,long version, T bcpu = null, T acpu= null) : base(machine)
+        public RS_SystemControlUnit(IMachine machine,long version, ICPUWithNMI bcpu = null, ICPUWithNMI acpu= null) : base(machine)
         {
             this.version = version;
             this.bcpu = bcpu;
@@ -30,12 +29,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
 
                     break;
                 case InputPort.BcpuWdt:
+                    bcpu.OnNMI(0, value, null);
                     break;
                 default:
                     break;
             }
-            
-
         }
         private enum Registers : long
         {
@@ -78,8 +76,8 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         }
         public long Size => 0x3FFF;
         private long version;
-        private T bcpu;
-        private T acpu;
+        private ICPUWithNMI bcpu;
+        private ICPUWithNMI acpu;
 
         public enum InputPort: int{
             

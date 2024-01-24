@@ -18,7 +18,7 @@ namespace Antmicro.Renode.Peripherals.CPU
     public class Andes_N22 : RiscV32
     {
 
-        public Andes_N22(IMachine machine, IRiscVTimeProvider timeProvider = null, string cpuType = "rv32imac", uint hartId = 0, uint resetVectorAddress = 0x0)
+        public Andes_N22(IMachine machine, IRiscVTimeProvider timeProvider = null, string cpuType = "rv32imac_zicsr", uint hartId = 0, uint resetVectorAddress = 0x0)
             : base(timeProvider: timeProvider, cpuType: cpuType, machine: machine, hartId: hartId, allowUnalignedAccesses: true, nmiVectorLength: 1, nmiVectorAddress: resetVectorAddress)
         {
             this.resetVectorAddress = resetVectorAddress;
@@ -52,19 +52,11 @@ namespace Antmicro.Renode.Peripherals.CPU
             {
                 // For now, only support special logic for when NMI is modified
                 MMISC_CTL = w;
-                bool newNMI = BitHelper.IsBitSet(w, 9);
-                if (newNMI)
-                {
-                    NMIVectorAddress = MTVEC; 
-                }
-                else
-                {
-                    NMIVectorAddress = resetVectorAddress;
-                }
             });
 
         }
-        public override void Reset(){
+        public override void Reset()
+        {
             base.Reset();
             PC = resetVectorAddress;
         }
@@ -106,6 +98,14 @@ namespace Antmicro.Renode.Peripherals.CPU
         {
 
             bool newNmi = BitHelper.IsBitSet(MMISC_CTL, 9);
+            if (newNmi)
+            {
+                NMIVectorAddress = MTVEC & 0xFFFFFFFC;
+            }
+            else
+            {
+                NMIVectorAddress = resetVectorAddress;
+            }
             base.OnNMI(number, value, newNmi ? 0xFFFUL : 1);
         }
 
@@ -125,7 +125,7 @@ namespace Antmicro.Renode.Peripherals.CPU
             MMISC_CTL_RW = 0x7d0,
             PUSHMXSTATUS_RW = 0x7eb, // Hook to CSRRWI
             MIRQ_ENTRY_RW = 0x7ec,
-            MINTSEL_JAL = 0x7ed,
+            MINTSEL_JAL = 0x7ed, //Should be in the CLIC
             PUSHMCAUSE_RW = 0x7ee, // Hook to CSRRWI
             PUSHMEPC_RW = 0x7ef, // Hook to CSRRWI
             UITB_RW = 0x800,
