@@ -15,84 +15,65 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             IMachine machine,
             long version,
             ICPUWithNMI bcpu = null,
-            ICPUWithNMI acpu = null
+            ICPUWithNMI acpu = null,
+            TranslationCPU acpuCtrl = null
             ) : base(machine)
         {
             this.version = (RS_SystemControlUnitVersion)version;
             this.bcpu = bcpu;
             this.acpu = acpu;
+            this.acpuCtrl = acpuCtrl;
 
-            var pausePins = 3;
-            var resetPins = 10;
-            var irqCount = 30;
-            bcpuIrqSetBaseIndex = pausePins + resetPins - 1;
+            GptPause = new GPIO();
+            BcpuWdtPause = new GPIO();
+            AcpuWdtPause = new GPIO();
+            //ResetSystem = new GPIO();
+            ResetBus = new GPIO();
+            ResetSram = new GPIO();
+            //ResetAcpu = new GPIO();
+            ResetPeripheral = new GPIO();
+            ResetFpga0 = new GPIO();
+            ResetFpga1 = new GPIO();
+            ResetDdr = new GPIO();
+            ResetUsb = new GPIO();
+            ResetEmac = new GPIO();
+            ResetDma = new GPIO();
+
+            var irqCount = 31;
+            bcpuIrqSetBaseIndex = 0;
             fpgaIrqSetBaseIndex = bcpuIrqSetBaseIndex + irqCount;
             acpuIrqSetBaseIndex = fpgaIrqSetBaseIndex + irqCount;
-            var connectionCount = acpuIrqSetBaseIndex + 1 +
-                ((this.version == RS_SystemControlUnitVersion.Virgo) ? 0 : irqCount);
+            var connectionCount = acpuIrqSetBaseIndex + irqCount + 1;
             var connections = new Dictionary<int, IGPIO>();
             for (var i = 0; i < connectionCount; i++)
             {
                 connections[i] = new GPIO();
             }
             Connections = new ReadOnlyDictionary<int, IGPIO>(connections);
-            irqMaskControl = new bool[32];
-            irqMapControl = new IrqSubsystemMapping[32];
-            irqState = new bool[32];
+            irqMaskControl = new bool[31];
+            irqMapControl = new IrqSubsystemMapping[31];
+            irqState = new bool[31];
             DefineRegisters();
         }
         private void DefineRegisters()
         {
             uint idrevReset = (version == RS_SystemControlUnitVersion.Gemini) ? 0x10475253U : 0x10565253U;
             Registers.IdRev.Define(this, resetValue: idrevReset, name: "ID and Revision Register")
-            .WithValueField(0, 16, mode: FieldMode.Read, name: "vendor_id")
-            .WithValueField(16, 8, mode: FieldMode.Read, name: "chip_id")
-            .WithValueField(24, 8, mode: FieldMode.Read, name: "rev_id");
-            Registers.SoftwareResetControl.Define(this, 0x0)
+                .WithValueField(0, 16, mode: FieldMode.Read, name: "vendor_id")
+                .WithValueField(16, 8, mode: FieldMode.Read, name: "chip_id")
+                .WithValueField(24, 8, mode: FieldMode.Read, name: "rev_id");
+            var swRstCtrlReg = Registers.SoftwareResetControl.Define(this, 0x0)
                 .WithFlag(0, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "system_rstn")
+                //ResetSystem.Set(newVal), name: "system_rstn")
+                    { if (newVal) { machine.RequestReset();} }, name: "system_rstn")
                 .WithFlag(1, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "bus_rstn")
-                .WithFlag(2, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "sram_rstn")
-                .WithFlag(3, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "acpu_rstn")
+                    ResetBus.Set(newVal), name: "bus_rstn")
                 .WithFlag(4, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "per_rstn")
+                    ResetPeripheral.Set(newVal), name: "per_rstn")
                 .WithFlag(5, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "fpga0_rstn")
-                .WithFlag(6, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "fpga1_rstn")
-                .WithFlag(7, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "ddr_rstn")
-                .WithFlag(8, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "usb_rstn")
-                .WithFlag(9, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "emac_rstn")
+                    ResetFpga0.Set(newVal), name: "fpga0_rstn")
                 .WithFlag(10, changeCallback: (oldVal, newVal) =>
-                {
-
-                }, name: "dma_rstn")
+                    ResetDma.Set(newVal), name: "dma_rstn")
                 .WithReservedBits(11, 21); // P1
             Registers.PllConfig0.Define(this, 0x0); // P3  
             Registers.PllConfig1.Define(this, 0x0); // P3 
@@ -103,7 +84,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             Registers.DividerControl.Define(this, 0x0); // P3
             Registers.GatingControl.Define(this, 0x0); // P3
             Registers.DebugControl.Define(this, 0x0); // P2, P3
-            Registers.IrqAcpuBcpuWdtMask.Define(this, 0x0)
+            var wdtMaskReg = Registers.IrqAcpuBcpuWdtMask.Define(this, 0x0)
                 .WithFlag(0, changeCallback: (oldVal, newVal) =>
                     {
                         bcpuNMImask = newVal;
@@ -111,13 +92,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     },
                     name: "irq_mask_bcpu_wdt")
                 .WithReservedBits(1, 15)
-                .WithFlag(16, changeCallback: (oldVal, newVal) =>
-                    {
-                        acpuNMImask = newVal;
-                        refreshNMI();
-                    },
-                    name: "irq_mask_acpu_wdt")
-                .WithReservedBits(9, 23);
+                .WithReservedBits(17, 15);
             Registers.IrqMaskMapControl_n.DefineMany(this, 30, setup: (reg, index) =>
                 {
                     // Define value field and flags
@@ -165,35 +140,67 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 ;
             Registers.MainDividerControl.Define(this, 0x0);
             Registers.PufccControl.Define(this, 0x0);
-            if (version != RS_SystemControlUnitVersion.Virgo)
-            {
-                Registers.UsbControl.Define(this, 0x0);
-            }
             Registers.FpgaPll.Define(this, 0x0); // P3
-            Registers.WdtPause.Define(this, 0x0)
+            var wdtPauseReg = Registers.WdtPause.Define(this, 0x0)
                 .WithFlag(0, changeCallback: (oldVal, newVal) =>
-                    Connections[(int)OutputPorts.BcpuWdtPause].Set(newVal),
+                    BcpuWdtPause.Set(newVal),
                     name: "bcpu_wdt_pause")
                 .WithReservedBits(1, 7)
-                .WithFlag(8, changeCallback: (oldVal, newVal) =>
-                    Connections[(int)OutputPorts.AcpuWdtPause].Set(newVal),
-                    name: "acpu_wdt_pause")
                 .WithReservedBits(9, 23);
-            Registers.DDRMode.Define(this, 0x0); // dummy
             Registers.OscillatorControl.Define(this, 0x0); // dummy
             Registers.GptPause.Define(this, 0x0)
                 .WithFlag(0, changeCallback: (oldVal, newVal) =>
-                    Connections[(int)OutputPorts.GptPause].Set(newVal),
+                    GptPause.Set(newVal),
                     name: "pit_pause")
                 .WithReservedBits(1, 31);
-            Registers.SramControl0.Define(this, 0x0); // dummy
-            Registers.SramControl1.Define(this, 0x0); // dummy
-            Registers.AcpuResetVector.Define(this, 0x80020000); // dummy
-            Registers.AcpuMemoryMargin.Define(this, 0x0); // dummy
-            Registers.MemorySubSystemMemoryMargin.Define(this, 0x0); // dummy
             Registers.ConfigSubSystemMemoryMargin.Define(this, 0x0); // dummy
             Registers.PadsModeControlSlewRateControl.Define(this, 0x0); // dummy
             Registers.SpareReg.Define(this, 0x0);
+
+            if (version == RS_SystemControlUnitVersion.Gemini)
+            {
+                swRstCtrlReg
+                    .WithFlag(2, changeCallback: (oldVal, newVal) =>
+                        ResetSram.Set(newVal), name: "sram_rstn")
+                    .WithFlag(3, changeCallback: (oldVal, newVal) =>
+                    //ResetAcpu.Set(newVal), name: "acpu_rstn")
+                        { if (newVal) { acpuCtrl.Reset();} }, name: "acpu_rstn")
+                    .WithFlag(6, changeCallback: (oldVal, newVal) =>
+                        ResetFpga1.Set(newVal), name: "fpga1_rstn")
+                    .WithFlag(7, changeCallback: (oldVal, newVal) =>
+                        ResetDdr.Set(newVal), name: "ddr_rstn")
+                    .WithFlag(8, changeCallback: (oldVal, newVal) =>
+                        ResetUsb.Set(newVal), name: "usb_rstn")
+                    .WithFlag(9, changeCallback: (oldVal, newVal) =>
+                        ResetEmac.Set(newVal), name: "emac_rstn");
+                wdtMaskReg
+                    .WithFlag(16, changeCallback: (oldVal, newVal) =>
+                        {
+                            acpuNMImask = newVal;
+                            refreshNMI();
+                        }, name: "irq_mask_acpu_wdt");
+                wdtPauseReg.WithFlag(8, changeCallback: (oldVal, newVal) =>
+                    AcpuWdtPause.Set(newVal),
+                    name: "acpu_wdt_pause");
+                Registers.UsbControl.Define(this, 0x0);
+                Registers.DDRMode.Define(this, 0x0); // dummy
+                Registers.SramControl0.Define(this, 0x0); // dummy
+                Registers.SramControl1.Define(this, 0x0); // dummy
+                Registers.AcpuResetVector.Define(this, 0x80020000); // dummy
+                Registers.AcpuMemoryMargin.Define(this, 0x0); // dummy
+                Registers.MemorySubSystemMemoryMargin.Define(this, 0x0); // dummy
+            }
+            else
+            {
+                swRstCtrlReg.WithReservedBits(2, 1); // sram
+                swRstCtrlReg.WithReservedBits(3, 1); // acpu
+                swRstCtrlReg.WithReservedBits(6, 1); // fpga0
+                swRstCtrlReg.WithReservedBits(7, 1); // ddr
+                swRstCtrlReg.WithReservedBits(8, 1); // usb
+                swRstCtrlReg.WithReservedBits(9, 1); // emac
+                wdtMaskReg.WithReservedBits(16, 1); // acpu mask
+                wdtPauseReg.WithReservedBits(8, 1); // acpu pause
+            }
 
         }
         public override void Reset()
@@ -293,14 +300,19 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         private void refreshNMI()
         {
             bool bcpuNMIVal = bcpuNMImask ? false : bcpuNMIState;
-            bool acpuNMIVal = acpuNMImask ? false : bcpuNMIState;
-            bcpu.OnNMI(0, bcpuNMIState, null);
-            acpu.OnNMI(0, acpuNMIState, null);
+            bcpu.OnNMI(0, bcpuNMIVal, null);
+
+            if (version == RS_SystemControlUnitVersion.Gemini)
+            {
+                bool acpuNMIVal = acpuNMImask ? false : bcpuNMIState;
+                acpu.OnNMI(0, acpuNMIVal, null);
+            }
         }
         public long Size => 0x3FFF;
         private RS_SystemControlUnitVersion version;
         private ICPUWithNMI bcpu;
         private ICPUWithNMI acpu;
+        private TranslationCPU acpuCtrl;
         private uint clockSelection = 0x0;
         private uint bootmode = 0x0;
         private BcpuResetCause resetCause = BcpuResetCause.SystemReset;
@@ -315,6 +327,21 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         private int acpuIrqSetBaseIndex;
         private bool[] irqMaskControl;
         private IrqSubsystemMapping[] irqMapControl;
+
+        public GPIO GptPause { get; }
+        public GPIO BcpuWdtPause { get; }
+        public GPIO AcpuWdtPause { get; }
+        //public GPIO ResetSystem { get; } // Reset the whole machine
+        public GPIO ResetBus { get; }
+        public GPIO ResetSram { get; }
+        public GPIO ResetAcpu { get; }
+        public GPIO ResetPeripheral { get; }
+        public GPIO ResetFpga0 { get; }
+        public GPIO ResetFpga1 { get; }
+        public GPIO ResetDdr { get; }
+        public GPIO ResetUsb { get; }
+        public GPIO ResetEmac { get; }
+        public GPIO ResetDma { get; }
         private enum Registers
         {
             IdRev = 0x0,
@@ -424,7 +451,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         // WDTs not covered in output ports as NMI is called direcly via the OnNMI function 
         public enum OutputPorts : uint
         {
-            BcpuIrq1 = 0x0,
+            BcpuIrq1,
             BcpuIrq2,
             BcpuIrq3,
             BcpuIrq4,
@@ -516,10 +543,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             AcpuIrq28,
             AcpuIrq29,
             AcpuIrq30,
-            AcpuIrq31,
-            GptPause,
-            BcpuWdtPause,
-            AcpuWdtPause
+            AcpuIrq31
         }
     }
 }
