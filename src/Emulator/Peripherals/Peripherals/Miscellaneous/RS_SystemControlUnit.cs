@@ -155,7 +155,8 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithReservedBits(1, 31);
             Registers.ConfigSubSystemMemoryMargin.Define(this, 0x0); // dummy
             Registers.PadsModeControlSlewRateControl.Define(this, 0x0); // dummy
-            Registers.SpareReg.Define(this, 0x0);
+            Registers.SpareReg.Define(this, 0x0)
+                .WithValueField(0, 32, name: "spare_reg");
 
             if (version == RS_SystemControlUnitVersion.Gemini)
             {

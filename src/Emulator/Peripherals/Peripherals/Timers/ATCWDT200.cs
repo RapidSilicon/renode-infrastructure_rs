@@ -20,7 +20,7 @@ using Antmicro.Renode.Peripherals.Bus;
 
 namespace Antmicro.Renode.Peripherals.Timers
 {
-  public class ATCWDT200 : BasicDoubleWordPeripheral, IKnownSize
+  public class ATCWDT200 : BasicDoubleWordPeripheral, IKnownSize, IGPIOReceiver
   {
     public ATCWDT200(Machine machine) : base(machine)
     {
@@ -62,6 +62,16 @@ namespace Antmicro.Renode.Peripherals.Timers
       this.InfoLog("Timer reset");
     }
 
+    public void OnGPIO(int number, bool value)
+    {
+      // check only for gpio pause signal in gpio 0
+      if(number == 0){
+        this.Log(LogLevel.Info, "WDT Pause signal value changed");
+        interruptTimer.Enabled = !value;
+        resetTimer.Enabled = !value;
+      }
+    }
+
     private bool CheckifUnlock(Registers reg)
     {
       if (registersUnlocked)
@@ -82,13 +92,13 @@ namespace Antmicro.Renode.Peripherals.Timers
           interval = 1UL << (31 - (int)24);
           break;
         case 1:
-          interval = 1UL << (31 - (int)23);         
+          interval = 1UL << (31 - (int)23);
           break;
         case 2:
-          interval = 1UL << (31 - (int)22);     
+          interval = 1UL << (31 - (int)22);
           break;
         case 3:
-          interval = 1UL << (31 - (int)21);         
+          interval = 1UL << (31 - (int)21);
           break;
         case 4:
           interval = 1UL << (31 - (int)20);
@@ -97,13 +107,13 @@ namespace Antmicro.Renode.Peripherals.Timers
           interval = 1UL << (31 - (int)19);
           break;
         case 6:
-          interval = 1UL << (31 - (int)18);      
+          interval = 1UL << (31 - (int)18);
           break;
         case 7:
-          interval = 1UL << (31 - (int)17);        
+          interval = 1UL << (31 - (int)17);
           break;
         default:
-           interval = 1UL << (31 - (int)24);         
+          interval = 1UL << (31 - (int)24);
           break;
       }
 
@@ -116,55 +126,55 @@ namespace Antmicro.Renode.Peripherals.Timers
       switch (value)
       {
         case 0:
-         interval = 1UL << (31 - (int)25);
-         break;
+          interval = 1UL << (31 - (int)25);
+          break;
         case 1:
-          interval = 1UL << (31 - (int)23);       
+          interval = 1UL << (31 - (int)23);
           break;
         case 2:
-          interval = 1UL << (31 - (int)21);        
+          interval = 1UL << (31 - (int)21);
           break;
         case 3:
           interval = 1UL << (31 - (int)20);
           break;
         case 4:
           interval = 1UL << (31 - (int)19);
-         break;
+          break;
         case 5:
-          interval = 1UL << (31 - (int)18);          
+          interval = 1UL << (31 - (int)18);
           break;
         case 6:
-          interval = 1UL << (31 - (int)17);        
+          interval = 1UL << (31 - (int)17);
           break;
         case 7:
-          interval = 1UL << (31 - (int)16);         
+          interval = 1UL << (31 - (int)16);
           break;
         case 8:
           interval = 1UL << (31 - (int)14);
-           break;
+          break;
         case 9:
-          interval = 1UL << (31 - (int)12);         
+          interval = 1UL << (31 - (int)12);
           break;
         case 10:
-          interval = 1UL << (31 - (int)10);         
+          interval = 1UL << (31 - (int)10);
           break;
         case 11:
-          interval = 1UL << (31 - (int)8);        
+          interval = 1UL << (31 - (int)8);
           break;
         case 12:
           interval = 1UL << (31 - (int)6);
           break;
         case 13:
-          interval = 1UL << (31 - (int)4);        
+          interval = 1UL << (31 - (int)4);
           break;
         case 14:
-          interval = 1UL << (31 - (int)2);         
+          interval = 1UL << (31 - (int)2);
           break;
         case 15:
-          interval = (1UL << (31));       
+          interval = (1UL << (31));
           break;
         default:
-          interval = 1UL << (31 - (int)25);      
+          interval = 1UL << (31 - (int)25);
           break;
       }
 
@@ -200,7 +210,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 {
                   interruptTimer.Enabled = value;
                   interruptTimer.Value = interruptTimer.Limit;
-                  this.InfoLog("Timer enabled");               
+                  this.InfoLog("Timer enabled");
                 }
               })
 
@@ -210,9 +220,12 @@ namespace Antmicro.Renode.Peripherals.Timers
                 if (CheckifUnlock(Registers.Control))
                 {
                   Control_ChClk = (bool)value;
-                  if (value) {
+                  if (value)
+                  {
                     this.InfoLog("Peripheral clock selected");
-                  } else {
+                  }
+                  else
+                  {
                     this.InfoLog("External clock selected");
                   }
                 }
@@ -242,7 +255,8 @@ namespace Antmicro.Renode.Peripherals.Timers
              })
 
             .WithValueField(4, 4, name: "CTRL.int_period",
-              writeCallback: (_, value) =>{
+              writeCallback: (_, value) =>
+              {
                 if (CheckifUnlock(Registers.Control))
                 {
                   interruptTimer.Limit = InterruptInterval((int)value);
