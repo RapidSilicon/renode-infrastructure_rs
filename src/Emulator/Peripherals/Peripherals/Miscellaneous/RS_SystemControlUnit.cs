@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Antmicro.Renode.Logging;
@@ -52,6 +53,10 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             Connections = new ReadOnlyDictionary<int, IGPIO>(connections);
             irqMaskControl = new bool[31];
             irqMapControl = new IrqSubsystemMapping[31];
+            for(int i=0; i<31; i++){
+                irqMaskControl[i] = true;
+                irqMapControl[i] = IrqSubsystemMapping.Bcpu;
+            }
             irqState = new bool[31];
             DefineRegisters();
         }
@@ -65,7 +70,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             var swRstCtrlReg = Registers.SoftwareResetControl.Define(this, 0x0)
                 .WithFlag(0, changeCallback: (oldVal, newVal) =>
                 //ResetSystem.Set(newVal), name: "system_rstn")
-                    { if (newVal) { machine.RequestReset();} }, name: "system_rstn")
+                    { if (newVal) { machine.RequestReset(); } }, name: "system_rstn")
                 .WithFlag(1, changeCallback: (oldVal, newVal) =>
                     ResetBus.Set(newVal), name: "bus_rstn")
                 .WithFlag(4, changeCallback: (oldVal, newVal) =>
@@ -139,7 +144,10 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 }, name: "bcpu_wdt_rst_status")
                 ;
             Registers.MainDividerControl.Define(this, 0x0);
-            Registers.PufccControl.Define(this, 0x0);
+            Registers.PufccControl.Define(this, 0x0)
+                .WithFlag(0, name:"pucc_rng_fre_out")
+                .WithFlag(1, name:"pucc_rng_fre_sel")
+                .WithFlag(1, name:"pucc_rng_fre_en"); // P2
             Registers.FpgaPll.Define(this, 0x0); // P3
             var wdtPauseReg = Registers.WdtPause.Define(this, 0x0)
                 .WithFlag(0, changeCallback: (oldVal, newVal) =>
@@ -165,7 +173,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                         ResetSram.Set(newVal), name: "sram_rstn")
                     .WithFlag(3, changeCallback: (oldVal, newVal) =>
                     //ResetAcpu.Set(newVal), name: "acpu_rstn")
-                        { if (newVal) { acpuCtrl.Reset();} }, name: "acpu_rstn")
+                        { if (newVal) { acpuCtrl.Reset(); } }, name: "acpu_rstn")
                     .WithFlag(6, changeCallback: (oldVal, newVal) =>
                         ResetFpga1.Set(newVal), name: "fpga1_rstn")
                     .WithFlag(7, changeCallback: (oldVal, newVal) =>
@@ -206,12 +214,12 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         }
         public override void Reset()
         {
+            resetCause = BcpuResetCause.SystemReset;
             foreach (var pair in Connections)
             {
                 pair.Value.Set(false);
             }
             base.Reset();
-
         }
 
         public void OnGPIO(int number, bool value)
@@ -230,11 +238,21 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 case (int)InputPort.Bootstrap1:
                     BitHelper.SetBit(ref bootmode, 1, value);
                     break;
-                case (int)InputPort.BcpuWdt:
+                case (int)InputPort.BcpuWdtReset:
+                    machine.RequestReset();
+                    resetCause = BcpuResetCause.Wdt;
+                    break;
+                case (int)InputPort.AcpuWdtReset:
+                    if (acpuCtrl != null)
+                    {
+                        acpuCtrl.Reset();
+                    }
+                    break;
+                case (int)InputPort.BcpuWdtIrq:
                     bcpuNMIState = value;
                     refreshNMI();
                     break;
-                case (int)InputPort.AcpuWdt:
+                case (int)InputPort.AcpuWdtIrq:
                     acpuNMIState = value;
                     refreshNMI();
                     break;
@@ -259,7 +277,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             bool bcpuIrq = false;
             bool fpgaIrq = false;
             bool acpuIrq = false;
-            if (!irqMaskControl[irqIndex])
+            if (irqMaskControl[irqIndex])
             {
                 switch (irqIndex)
                 {
@@ -410,43 +428,46 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         }
         public enum InputPort : int
         {
-            ClkSel0 = 0x0,
-            ClkSel1 = 0x1,
-            Bootstrap0 = 0x2,
-            Bootstrap1 = 0x3,
-            BcpuWdt = 0x4,
-            AcpuWdt = 0x5,
-            Irq1 = 0x6,
-            Irq2 = 0x7,
-            Irq3 = 0x8,
-            Irq4 = 0x9,
-            Irq5 = 0x10,
-            Irq6 = 0x11,
-            Irq7 = 0x12,
-            Irq8 = 0x13,
-            Irq9 = 0x14,
-            Irq10 = 0x15,
-            Irq11 = 0x16,
-            Irq12 = 0x17,
-            Irq13 = 0x18,
-            Irq14 = 0x19,
-            Irq15 = 0x20,
-            Irq16 = 0x21,
-            Irq17 = 0x22,
-            Irq18 = 0x23,
-            Irq19 = 0x24,
-            Irq20 = 0x25,
-            Irq21 = 0x26,
-            Irq22 = 0x27,
-            Irq23 = 0x28,
-            Irq24 = 0x29,
-            Irq25 = 0x30,
-            Irq26 = 0x31,
-            Irq27 = 0x32,
-            Irq28 = 0x33,
-            Irq29 = 0x34,
-            Irq30 = 0x35,
-            Irq31 = 0x36
+            Reserved0 = 0,
+            Irq1 = 1,
+            Irq2 = 2,
+            Irq3 = 3,
+            Irq4 = 4,
+            Irq5 = 5,
+            Irq6 = 6,
+            Irq7 = 7,
+            Irq8 = 8,
+            Irq9 = 9,
+            Irq10 = 10,
+            Irq11 = 11,
+            Irq12 = 12,
+            Irq13 = 13,
+            Irq14 = 14,
+            Irq15 = 15,
+            Irq16 = 16,
+            Irq17 = 17,
+            Irq18 = 18,
+            Irq19 = 19,
+            Irq20 = 20,
+            Irq21 = 21,
+            Irq22 = 22,
+            Irq23 = 23,
+            Irq24 = 24,
+            Irq25 = 25,
+            Irq26 = 26,
+            Irq27 = 27,
+            Irq28 = 28,
+            Irq29 = 29,
+            Irq30 = 30,
+            Irq31 = 31,
+            ClkSel0 = 32,
+            ClkSel1 = 33,
+            Bootstrap0 = 34,
+            Bootstrap1 = 35,
+            BcpuWdtReset = 36,
+            AcpuWdtReset = 37,
+            BcpuWdtIrq = 38,
+            AcpuWdtIrq = 39
         }
 
         // WDTs not covered in output ports as NMI is called direcly via the OnNMI function 
