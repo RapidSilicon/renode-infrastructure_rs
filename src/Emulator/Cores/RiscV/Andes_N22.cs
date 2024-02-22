@@ -109,6 +109,11 @@ namespace Antmicro.Renode.Peripherals.CPU
             base.OnNMI(number, value, newNmi ? 0xFFFUL : 1);
         }
 
+        public override void OnGPIO(int number, bool value){
+            this.Log(LogLevel.Info, $"Core IRQ {number} asserted: {value}");
+            base.OnGPIO(number, value);
+        }
+
         private RegisterValue MXSTATUS;
         private RegisterValue MMISC_CTL;
         private readonly uint resetVectorAddress;
