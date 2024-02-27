@@ -17,6 +17,9 @@ using System.Collections.ObjectModel;
 
 namespace Antmicro.Renode.Peripherals.Timers
 {
+    // This model does not replicate the behavior of the IP when the advise of 
+    // disabling a channel before changing configuration is ignored as RTL would
+    // be required to replicate it. 
     public class ATCPIT100 : BasicDoubleWordPeripheral, IKnownSize, IGPIOReceiver
     {
         public ATCPIT100(Machine machine, long frequencyExt, long frequencyAPB, int channelCount = 4) : base(machine)
@@ -54,7 +57,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     );
                     internalTimers[i, j].LimitReached += () =>
                     {
-                        IRQ.Set(internalTimers[i, j].Interrupt);
+                        refreshIRQ();
                     };
                 }
 
@@ -91,6 +94,11 @@ namespace Antmicro.Renode.Peripherals.Timers
             Reset();
         }
 
+        private void refreshIRQ(){
+            ulong intEn = RegistersCollection.Read((long)Registers.IntEn);
+            ulong intSt = RegistersCollection.Read((long)Registers.IntSt);
+            IRQ.Set((intEn & intSt)!=0);
+        }
         public override void Reset()
         {
             base.Reset();
@@ -361,6 +369,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     break;
 
             }
+            refreshIRQ();
         }
 
         private ulong CounterValue(int channel)
@@ -433,7 +442,12 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 internalTimers[channel, i].Frequency = frequency;
             }
+        }
 
+        private void InterruptStatusChange(int channel, int timer, bool newVal)
+        {
+            if (newVal) internalTimers[0, timer].ClearInterrupt();
+            refreshIRQ();
         }
 
         //define registers, read/write callback, bitfields
@@ -461,20 +475,16 @@ namespace Antmicro.Renode.Peripherals.Timers
             //Interrupt Status Register
             Registers.IntSt.Define(this)
                 .WithFlags(0, 4, name: "Chn0IntSt",
-                    writeCallback: (timer, _, newVal) =>
-                        { if (newVal) internalTimers[0, timer].ClearInterrupt(); },
+                    writeCallback: (timer, _, newVal) => InterruptStatusChange(0, timer, newVal),
                     valueProviderCallback: (timer, _) => internalTimers[0, timer].InterruptStatus)
                 .WithFlags(4, 4, name: "Chn1IntSt",
-                    writeCallback: (timer, _, newVal) =>
-                        { if (newVal) internalTimers[1, timer].ClearInterrupt(); },
+                    writeCallback: (timer, _, newVal) => InterruptStatusChange(1, timer, newVal),
                     valueProviderCallback: (timer, _) => internalTimers[1, timer].InterruptStatus)
                 .WithFlags(8, 4, name: "Chn2IntSt",
-                    writeCallback: (timer, _, newVal) =>
-                        { if (newVal) internalTimers[2, timer].ClearInterrupt(); },
+                    writeCallback: (timer, _, newVal) => InterruptStatusChange(2, timer, newVal),
                     valueProviderCallback: (timer, _) => internalTimers[2, timer].InterruptStatus)
                 .WithFlags(12, 4, name: "Chn3IntSt",
-                    writeCallback: (timer, _, newVal) =>
-                        { if (newVal) internalTimers[3, timer].ClearInterrupt(); },
+                    writeCallback: (timer, _, newVal) => InterruptStatusChange(3, timer, newVal),
                     valueProviderCallback: (timer, _) => internalTimers[3, timer].InterruptStatus)
                 .WithReservedBits(16, 16);
 
@@ -676,6 +686,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get { return Enabled; }
                 set
                 {
+                    if(!hasNonZeroLimit) Limit = 1;
                     if (!paused) Enabled = value;
                 }
             }
