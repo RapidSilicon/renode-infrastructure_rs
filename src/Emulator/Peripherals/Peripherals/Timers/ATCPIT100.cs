@@ -74,18 +74,24 @@ namespace Antmicro.Renode.Peripherals.Timers
                     $"Chn{i}_PWM_Hi"
                 );
 
+
+                var channel = i;
                 internalTimers[i, 4].LimitReached += () =>
                 {
-                    internalTimers[i, 4].Enabled = false;
-                    internalTimers[i, 5].Enabled = true;
-                    chPwm[i].Set(true);
+                    internalTimers[channel, 4].Enabled = false;
+                    internalTimers[channel, 5].Enabled = true;
+                    chPwm[channel].Set(true);
+                    //this.Log(LogLevel.Info, $"PWM {channel} Up");
                 };
                 internalTimers[i, 5].LimitReached += () =>
                 {
-                    internalTimers[i, 4].Enabled = true;
-                    internalTimers[i, 5].Enabled = false;
-                    chPwm[i].Set(false);
+                    internalTimers[channel, 4].Enabled = true;
+                    internalTimers[channel, 5].Enabled = false;
+                    chPwm[channel].Set(false);
+                    //this.Log(LogLevel.Info, $"PWM {channel} Down");
                 };
+                internalTimers[i, 4].InterruptEnable = true;
+                internalTimers[i, 5].InterruptEnable = true;
             }
             this.frequencyExt = frequencyExt;
             this.frequencyAPB = frequencyAPB;
@@ -94,10 +100,11 @@ namespace Antmicro.Renode.Peripherals.Timers
             Reset();
         }
 
-        private void refreshIRQ(){
+        private void refreshIRQ()
+        {
             ulong intEn = RegistersCollection.Read((long)Registers.IntEn);
             ulong intSt = RegistersCollection.Read((long)Registers.IntSt);
-            IRQ.Set((intEn & intSt)!=0);
+            IRQ.Set((intEn & intSt) != 0);
         }
         public override void Reset()
         {
@@ -110,6 +117,9 @@ namespace Antmicro.Renode.Peripherals.Timers
                 {
                     internalTimers[i, j].Reset();
                 }
+                // enable the PWM related limit reached events
+                internalTimers[i, 4].InterruptEnable = true;
+                internalTimers[i, 5].InterruptEnable = true;
             }
             IRQ.Unset();
         }
@@ -686,7 +696,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                 get { return Enabled; }
                 set
                 {
-                    if(!hasNonZeroLimit) Limit = 1;
+                    if (!hasNonZeroLimit) Limit = 1;
                     if (!paused) Enabled = value;
                 }
             }
