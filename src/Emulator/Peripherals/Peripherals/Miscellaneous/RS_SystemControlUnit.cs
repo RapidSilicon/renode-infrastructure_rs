@@ -147,7 +147,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             Registers.PufccControl.Define(this, 0x0)
                 .WithFlag(0, name:"pucc_rng_fre_out")
                 .WithFlag(1, name:"pucc_rng_fre_sel")
-                .WithFlag(1, name:"pucc_rng_fre_en"); // P2
+                .WithFlag(2, name:"pucc_rng_fre_en"); // P2
             Registers.FpgaPll.Define(this, 0x0); // P3
             var wdtPauseReg = Registers.WdtPause.Define(this, 0x0)
                 .WithFlag(0, changeCallback: (oldVal, newVal) =>
