@@ -78,6 +78,7 @@
     <Compile Include="Peripherals\Timers\ATCWDT200.cs" />
     <Compile Include="Peripherals\GPIOPort\ATCGPIO100.cs" />
     <Compile Include="Peripherals\Miscellaneous\RS_SystemControlUnit.cs" />
+    <Compile Include="Peripherals\Miscellaneous\ResetGenerator.cs" />
     <Compile Include="Peripherals\UART\AxiUartLite.cs" />
     <Compile Include="Peripherals\Input\AntMouse.cs" />
     <Compile Include="Peripherals\MTD\CFIFlashExtensions.cs" />
@@ -108,6 +109,7 @@
     <Compile Include="Peripherals\DMA\MPFS_PDMA.cs" />
     <Compile Include="Peripherals\DMA\NPCX_MDMA.cs" />
     <Compile Include="Peripherals\DMA\STM32LDMA.cs" />
+    <Compile Include="Peripherals\DMA\ATCDMAC100.cs" />
     <Compile Include="Peripherals\Miscellaneous\ArmSysCtl.cs" />
     <Compile Include="Peripherals\DMA\OmapDma.cs" />
     <Compile Include="Peripherals\EfmSystemDevice.cs" />
