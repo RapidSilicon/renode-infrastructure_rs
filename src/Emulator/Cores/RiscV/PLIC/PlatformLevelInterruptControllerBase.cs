@@ -44,6 +44,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
 
         public uint ReadDoubleWord(long offset)
         {
+            //Console.WriteLine("Debugging, PLICbase.cs: ReadDoubleWord(): offset = 0x{0:x8}", offset); //debugging
             return registers.Read(offset);
         }
 
@@ -66,6 +67,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
         public void WriteDoubleWord(long offset, uint value)
         {
             registers.Write(offset, value);
+            //Console.WriteLine("Debugging, PLICbase.cs: WriteDoubleWord(): offset = 0x{0:x8}, value = 0x{1:x8}", offset, value); //debugging
         }
 
         public void OnGPIO(int number, bool value)
@@ -116,6 +118,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
 
         protected void AddContextClaimCompleteRegister(Dictionary<long, DoubleWordRegister> registersMap, long offset, uint contextId)
         {
+            //Console.WriteLine("Debugging, AddContextClaimCompleteRegister(): offset = 0x{0:x8}, contextID = {1}", offset, contextId); //debugging
             registersMap.Add(offset, new DoubleWordRegister(this).WithValueField(0, 32, valueProviderCallback: _ =>
             {
                 lock(irqSources)

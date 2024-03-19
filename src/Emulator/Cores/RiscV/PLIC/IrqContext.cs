@@ -128,7 +128,8 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             }
             else
             {
-                pendingIrq = pendingSources
+                //returns the highest-priority, pending Irq from enabled Sources. If there is a tie in priority, lowest ID returned first:
+                pendingIrq = enabledSources.Where(x => x.IsPending)
                     .OrderByDescending(x => x.Priority)
                     .ThenBy(x => x.Id).FirstOrDefault(); 
             }
@@ -153,6 +154,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
                 RefreshInterrupt();
                 return 0;
             }
+
             
         }
 
