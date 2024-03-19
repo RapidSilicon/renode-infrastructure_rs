@@ -21,6 +21,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             this.priorityThreshold = 0;
 
             enabledSources = new HashSet<IrqSource>();
+            pendingSources = new HashSet<IrqSource>();
             activeInterrupts = new Stack<IrqSource>();
         }
 
@@ -67,7 +68,14 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
                 return;
             }
 
-            irq.IsPending = irq.State;
+            if(irq.State) 
+            {
+                MarkSourceAsPending(irq);
+            }
+            else 
+            {
+                RemovePendingStatusFromSource(irq);
+            }
             RefreshInterrupt();
         }
 
@@ -76,10 +84,15 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             if(enabled)
             {
                 enabledSources.Add(s);
+                if(s.State)
+                {
+                    MarkSourceAsPending(s);
+                }
             }
             else
             {
                 enabledSources.Remove(s);
+                RemovePendingStatusFromSource(s);
             }
             irqController.Log(LogLevel.Noisy, "{0} source #{1} @ {2}", enabled ? "Enabling" : "Disabling", s.Id, this);
             RefreshInterrupt();
@@ -115,7 +128,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
             }
             else
             {
-                pendingIrq = enabledSources.Where(x => x.IsPending)
+                pendingIrq = pendingSources
                     .OrderByDescending(x => x.Priority)
                     .ThenBy(x => x.Id).FirstOrDefault(); 
             }
@@ -149,6 +162,7 @@ namespace Antmicro.Renode.Peripherals.IRQControllers.PLIC
         private readonly IPlatformLevelInterruptController irqController;
 
         private readonly HashSet<IrqSource> enabledSources;
+        private readonly HashSet<IrqSource> pendingSources;
         private readonly Stack<IrqSource> activeInterrupts;
     }
 }
