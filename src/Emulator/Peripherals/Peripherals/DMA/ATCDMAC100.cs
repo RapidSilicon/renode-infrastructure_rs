@@ -45,7 +45,9 @@ namespace Antmicro.Renode.Peripherals.DMA
         }
 
         public GPIO IRQ { get; }
+
         public long Size => 0x400;
+        
         private void BuildRegisters()
         {
             Registers.Configuration.Define(this)
@@ -272,7 +274,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                         name: "LLPOINTER")
                 ;
             }
-            
+
             public void Reset()
             {
                 descriptor = default(Descriptor);
@@ -326,11 +328,13 @@ namespace Antmicro.Renode.Peripherals.DMA
             public bool ChEN => descriptor.Enabled;
             public bool channelabort;
             public bool abortstatus;
+
             public void LinkLoad()
             {
                 parent.InfoLog("Link Loaded");
                 StartTransferInner();
             }
+
             private void StartTransferInner()
             {
                 if (isInProgress)
@@ -456,6 +460,7 @@ namespace Antmicro.Renode.Peripherals.DMA
             private IFlagRegisterField InterruptTCMask;
             private readonly ATCDMAC100 parent;
             protected readonly int DescriptorSize = Packet.CalculateLength<Descriptor>();
+
             protected enum BlockSizeMode
             {
                 Unit1 = 0x0,
@@ -468,6 +473,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                 Unit128 = 0x7,
 
             }
+
             protected enum AddressMode
             {
                 Increment = 0x0,
@@ -475,6 +481,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                 Fixed = 0x2,
                 Reserved = 0x3,
             }
+
             protected enum SizeMode
             {
                 Byte = 0x0,
