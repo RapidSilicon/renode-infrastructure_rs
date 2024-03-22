@@ -58,9 +58,12 @@ namespace Antmicro.Renode.Peripherals.DMA
             ;
             Registers.Control.Define(this)
                 .WithFlag(0, FieldMode.Read | FieldMode.Write, writeCallback: (_, value) => { if (value) Reset(); }, name: "RESET")
+                .WithFlag(0, FieldMode.Read | FieldMode.Write, writeCallback: (_, value) => { if (value) Reset(); }, name: "RESET")
                 .WithReservedBits(1, 31)
             ;
             Registers.InterruptStatus.Define(this)
+                .WithFlags(0, 8, FieldMode.WriteOneToClear | FieldMode.Read, writeCallback: (i, _, value) => channels[i].errorstatus &= !value, valueProviderCallback: (i, _) => channels[i].errorstatus, name: "ERROR")
+                .WithFlags(8, 8, FieldMode.WriteOneToClear | FieldMode.Read, writeCallback: (i, _, value) => channels[i].abortstatus &= !value, valueProviderCallback: (i, _) => channels[i].abortstatus, name: "ABORT")
                 .WithFlags(0, 8, FieldMode.WriteOneToClear | FieldMode.Read, writeCallback: (i, _, value) => channels[i].errorstatus &= !value, valueProviderCallback: (i, _) => channels[i].errorstatus, name: "ERROR")
                 .WithFlags(8, 8, FieldMode.WriteOneToClear | FieldMode.Read, writeCallback: (i, _, value) => channels[i].abortstatus &= !value, valueProviderCallback: (i, _) => channels[i].abortstatus, name: "ABORT")
                 .WithFlags(16, 8, FieldMode.WriteOneToClear | FieldMode.Read, writeCallback: (i, _, value) => channels[i].interruptTCstatus &= !value, valueProviderCallback: (i, _) => channels[i].interruptTCstatus, name: "TC")
@@ -73,6 +76,7 @@ namespace Antmicro.Renode.Peripherals.DMA
             ;
             Registers.ChannelAbort.Define(this)
                 .WithFlags(0, 8, FieldMode.Read | FieldMode.Write, writeCallback: (i, _, value) => channels[i].ChAbort = value, valueProviderCallback: (i, _) => channels[i].ChAbort, name: "CHABORT")
+                .WithFlags(0, 8, FieldMode.Read | FieldMode.Write, writeCallback: (i, _, value) => channels[i].ChAbort = value, valueProviderCallback: (i, _) => channels[i].ChAbort, name: "CHABORT")
                 .WithReservedBits(8, 24)
             ;
             var channelDelta = (uint)((long)Registers.Channel1Control - (long)Registers.Channel0Control);
@@ -81,8 +85,29 @@ namespace Antmicro.Renode.Peripherals.DMA
             Registers.Channel0DestinationAddress.BindMany(this, NumberOfChannels, i => channels[i].DestinationAddressRegister, channelDelta);
             Registers.Channel0TransferSize.BindMany(this, NumberOfChannels, i => channels[i].TransferSizeRegister, channelDelta);
             Registers.Channel0LinkListPointer.BindMany(this, NumberOfChannels, i => channels[i].LinkListPointerRegister, channelDelta);
+            var channelDelta = (uint)((long)Registers.Channel1Control - (long)Registers.Channel0Control);
+            Registers.Channel0Control.BindMany(this, NumberOfChannels, i => channels[i].ControlRegister, channelDelta);
+            Registers.Channel0SourceAddress.BindMany(this, NumberOfChannels, i => channels[i].SourceAddressRegister, channelDelta);
+            Registers.Channel0DestinationAddress.BindMany(this, NumberOfChannels, i => channels[i].DestinationAddressRegister, channelDelta);
+            Registers.Channel0TransferSize.BindMany(this, NumberOfChannels, i => channels[i].TransferSizeRegister, channelDelta);
+            Registers.Channel0LinkListPointer.BindMany(this, NumberOfChannels, i => channels[i].LinkListPointerRegister, channelDelta);
         }
 
+        private void UpdateInterrupts()
+        {
+            IRQ.Set(channels.Any(channel => channel.IRQ));
+            if (IRQ.IsSet)
+            {
+                this.Log(LogLevel.Info, "Interrupt set for channels: {0}", String.Join(", ",
+                    channels
+                        .Where(channel => channel.IRQ)
+                        .Select(channel => channel.Index)
+                    ));
+            }
+            else
+            {
+                this.Log(LogLevel.Info, "Interrupt unset for channel");
+            }
         private void UpdateInterrupts()
         {
             IRQ.Set(channels.Any(channel => channel.IRQ));
@@ -174,17 +199,38 @@ namespace Antmicro.Renode.Peripherals.DMA
                     .WithFlag(1, out InterruptTCMask, FieldMode.Read | FieldMode.Write,
                         writeCallback: (_, value) =>  descriptor.interruptTCMask = value,
                         valueProviderCallback: _ => descriptor.interruptTCMask,
+                       {
+                           descriptor.Enabled = value;
+                           if (descriptor.Enabled && descriptor.TranSize == 0)
+                           {
+                               parent.ErrorLog("Attempted to perform a DMA transaction with invalid transfer size");
+                               errorstatus = true;
+                           }
+                       },
+                       name: "ENABLE")
+                    .WithFlag(1, out InterruptTCMask, FieldMode.Read | FieldMode.Write,
+                        writeCallback: (_, value) =>  descriptor.interruptTCMask = value,
+                        valueProviderCallback: _ => descriptor.interruptTCMask,
                         name: "INTTCMASK")
                     .WithFlag(2, FieldMode.Read | FieldMode.Write,
+                        writeCallback: (_, value) => descriptor.InterruptErrMask = value,
+                        name: "INTERRMASK")
                         writeCallback: (_, value) => descriptor.InterruptErrMask = value,
                         name: "INTERRMASK")
                     .WithFlag(3, FieldMode.Read | FieldMode.Write,
                        writeCallback: (_, value) => descriptor.InterruptAbtMask = value,
                        name: "INTABTMASK")
+                       writeCallback: (_, value) => descriptor.InterruptAbtMask = value,
+                       name: "INTABTMASK")
                     .WithValueField(4, 4,
                         writeCallback: (_, value) => descriptor.DstReqSel = (uint)value,
                         name: "DSTREQSEL")
+                        writeCallback: (_, value) => descriptor.DstReqSel = (uint)value,
+                        name: "DSTREQSEL")
                     .WithValueField(8, 4,
+                       writeCallback: (_, value) => descriptor.SrcReqSel = (uint)value,
+                       name: "SRCREQSEL")
+                    .WithEnumField<DoubleWordRegister, AddressMode>(12, 2, FieldMode.Write | FieldMode.Read,
                        writeCallback: (_, value) => descriptor.SrcReqSel = (uint)value,
                        name: "SRCREQSEL")
                     .WithEnumField<DoubleWordRegister, AddressMode>(12, 2, FieldMode.Write | FieldMode.Read,
@@ -192,12 +238,15 @@ namespace Antmicro.Renode.Peripherals.DMA
                         {
                             descriptor.DstAddrCtrl = value;
                             parent.InfoLog("Destination address : {0}", descriptor.DstAddrCtrl);
+                            parent.InfoLog("Destination address : {0}", descriptor.DstAddrCtrl);
                         },
                         name: "DSTADDCTRL")
+                    .WithEnumField<DoubleWordRegister, AddressMode>(14, 2, FieldMode.Write | FieldMode.Read,
                     .WithEnumField<DoubleWordRegister, AddressMode>(14, 2, FieldMode.Write | FieldMode.Read,
                         writeCallback: (_, value) =>
                         {
                             descriptor.SrcAddrCtrl = value;
+                            parent.InfoLog("Source address : {0}", descriptor.SrcAddrCtrl);
                             parent.InfoLog("Source address : {0}", descriptor.SrcAddrCtrl);
                         },
                         name: "SRCADDCTRL")
@@ -216,6 +265,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                         valueProviderCallback: _ => descriptor.dstwidth,
                         name: "DSTWIDTH")
                     .WithEnumField<DoubleWordRegister, SizeMode>(20, 2,
+                        writeCallback: (_, value) =>
                         writeCallback: (_, value) =>
                         {
                             descriptor.srcwidth = value;
@@ -237,8 +287,10 @@ namespace Antmicro.Renode.Peripherals.DMA
                         name: "PRIORITY")
                     .WithFlag(30, FieldMode.Read | FieldMode.Write,
                         writeCallback: (_, value) => descriptor.SRCREQSELB5 = value,
+                        writeCallback: (_, value) => descriptor.SRCREQSELB5 = value,
                         name: "SRCREQSELB5")
                     .WithFlag(31, FieldMode.Read | FieldMode.Write,
+                        writeCallback: (_, value) => descriptor.DSTREQSELB5 = value,
                         writeCallback: (_, value) => descriptor.DSTREQSELB5 = value,
                         name: "DSTREQSELB5")
                     .WithChangeCallback((_, __) => { if ((descriptor.Enabled) && (LinkStructureAddress == 0)) {Transfer();} 
@@ -304,9 +356,17 @@ namespace Antmicro.Renode.Peripherals.DMA
             public int Index { get; }
             public bool interruptTCstatus { get; set; }
             public bool errorstatus { get; set; }
+            public bool errorstatus { get; set; }
             public bool interruptTCMask => descriptor.interruptTCMask;
             public bool interruptAbtMask => descriptor.InterruptAbtMask;
             public bool interruptErrMask => descriptor.InterruptErrMask;
+            public bool interruptAbtMask => descriptor.InterruptAbtMask;
+            public bool interruptErrMask => descriptor.InterruptErrMask;
+
+            public bool IRQ1 => (!interruptTCMask) & interruptTCstatus;
+            public bool IRQ2 => (!interruptAbtMask) & abortstatus;
+            public bool IRQ3 => (!interruptErrMask) & errorstatus;
+            public bool IRQ => IRQ1 || IRQ2 || IRQ3;
 
             public bool IRQ1 => (!interruptTCMask) & interruptTCstatus;
             public bool IRQ2 => (!interruptAbtMask) & abortstatus;
@@ -326,8 +386,20 @@ namespace Antmicro.Renode.Peripherals.DMA
             public void LinkLoad()
             {
                 parent.InfoLog("Link Loaded");
+            public bool ChEN => descriptor.Enabled;
+            public bool channelabort;
+            public bool abortstatus;
+            public void LinkLoad()
+            {
+                parent.InfoLog("Link Loaded");
                 StartTransferInner();
             }
+            private void StartTransferInner()
+            {
+                if (isInProgress)
+                {
+                    return;
+                }
             private void StartTransferInner()
             {
                 if (isInProgress)
@@ -441,10 +513,14 @@ namespace Antmicro.Renode.Peripherals.DMA
             }
 
             private uint TranSize => (uint)descriptor.TranSize;
+
+            private uint TranSize => (uint)descriptor.TranSize;
             private ulong LinkStructureAddress => (ulong)descriptor.linkAddress << 2;
             private uint SourceIncrement => descriptor.SrcAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.srcwidth));
             private uint DestinationIncrement => descriptor.DstAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.dstwidth));
             private TransferType SizeAsTransferType => (TransferType)(1 << (byte)descriptor.srcwidth);
+            private int Bytes => (int)Math.Min(TranSize, BlockSizeMultiplier) << (byte)descriptor.srcwidth;
+
             private int Bytes => (int)Math.Min(TranSize, BlockSizeMultiplier) << (byte)descriptor.srcwidth;
 
             private Descriptor descriptor;
@@ -466,12 +542,14 @@ namespace Antmicro.Renode.Peripherals.DMA
 
             }
             protected enum AddressMode
+            protected enum AddressMode
             {
                 Increment = 0x0,
                 Decrement = 0x1,
                 Fixed = 0x2,
                 Reserved = 0x3,
             }
+            protected enum SizeMode
             protected enum SizeMode
             {
                 Byte = 0x0,
@@ -523,29 +601,42 @@ namespace Antmicro.Renode.Peripherals.DMA
                 public uint SrcReqSel;
                 [PacketField, Offset(doubleWords: 0, bits: 12), Width(2)]
                 public AddressMode DstAddrCtrl;
+                public AddressMode DstAddrCtrl;
                 [PacketField, Offset(doubleWords: 0, bits: 14), Width(2)]
+                public AddressMode SrcAddrCtrl;
                 public AddressMode SrcAddrCtrl;
                 [PacketField, Offset(doubleWords: 0, bits: 16), Width(1)]
                 public bool DstMode;
+                public bool DstMode;
                 [PacketField, Offset(doubleWords: 0, bits: 17), Width(1)]
+                public bool SrcMode;
                 public bool SrcMode;
                 [PacketField, Offset(doubleWords: 0, bits: 18), Width(2)]
                 public SizeMode dstwidth;
+                public SizeMode dstwidth;
                 [PacketField, Offset(doubleWords: 0, bits: 20), Width(2)]
+                public SizeMode srcwidth;
                 public SizeMode srcwidth;
                 [PacketField, Offset(doubleWords: 0, bits: 22), Width(3)]
                 public BlockSizeMode blockSize;
+                public BlockSizeMode blockSize;
                 [PacketField, Offset(doubleWords: 0, bits: 29), Width(1)]
+                public bool priority;
                 public bool priority;
                 [PacketField, Offset(doubleWords: 0, bits: 30), Width(1)]
                 public bool SRCREQSELB5;
+                public bool SRCREQSELB5;
                 [PacketField, Offset(doubleWords: 0, bits: 31), Width(1)]
+                public bool DSTREQSELB5;
                 public bool DSTREQSELB5;
                 [PacketField, Offset(doubleWords: 1, bits: 0), Width(32)]
                 public uint sourceAddress;
+                public uint sourceAddress;
                 [PacketField, Offset(doubleWords: 2, bits: 0), Width(32)]
                 public uint destinationAddress;
+                public uint destinationAddress;
                 [PacketField, Offset(doubleWords: 3, bits: 0), Width(22)]
+                public uint TranSize;
                 public uint TranSize;
                 [PacketField, Offset(doubleWords: 4, bits: 2), Width(30)]
                 public uint linkAddress;
