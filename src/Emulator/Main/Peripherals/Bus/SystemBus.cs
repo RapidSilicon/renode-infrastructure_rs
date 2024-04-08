@@ -484,7 +484,7 @@ namespace Antmicro.Renode.Peripherals.Bus
                         checked
                         {
                             memory.ReadBytes(checked((long)(target.Offset - target.What.RegistrationPoint.Range.StartAddress + target.What.RegistrationPoint.Offset)), (int)target.SourceLength, destination, startIndex + (int)target.SourceIndex);
-                            Console.WriteLine("Sysbus check1");
+                            Console.WriteLine("Sysbus ReadBytes 1");
                         }
                     }
                     else
@@ -492,6 +492,7 @@ namespace Antmicro.Renode.Peripherals.Bus
                         for(var i = 0UL; i < target.SourceLength; ++i)
                         {
                             destination[checked((ulong)startIndex) + target.SourceIndex + i] = ReadByte(target.Offset + i, context);
+                             Console.WriteLine("Sysbus ReadBytes 2");
                         }
                     }
                 }
@@ -502,7 +503,7 @@ namespace Antmicro.Renode.Peripherals.Bus
         {
             var result = new byte[count];
             ReadBytes(address, count, result, 0, onlyMemory, context);
-              Console.WriteLine("Sysbus check2");
+              Console.WriteLine("Sysbus Readbytes 3");
             return result;
         }
 
@@ -512,8 +513,10 @@ namespace Antmicro.Renode.Peripherals.Bus
         }
 
         public void WriteBytes(byte[] bytes, ulong address, bool onlyMemory = false, ICPU context = null)
-        {
+        {  
+             Console.WriteLine("Sysbus WriteBytes 1");
             WriteBytes(bytes, address, bytes.Length, onlyMemory, context);
+            
         }
 
         public void WriteBytes(byte[] bytes, ulong address, int startingIndex, long count, bool onlyMemory = false, ICPU context = null)
@@ -531,14 +534,14 @@ namespace Antmicro.Renode.Peripherals.Bus
                     if(multibytePeripheral != null)
                     {
                         checked
-                        {
+                        {    Console.WriteLine("Sysbus WriteBytes 2");
                             multibytePeripheral.WriteBytes(checked((long)(target.Offset - target.What.RegistrationPoint.Range.StartAddress + target.What.RegistrationPoint.Offset)), bytes, startingIndex + (int)target.SourceIndex, (int)target.SourceLength);
                         }
                     }
                     else
                     {
                         for(var i = 0UL; i < target.SourceLength; ++i)
-                        {
+                        {   Console.WriteLine("Sysbus WriteBytes 3");
                             WriteByte(target.Offset + i, bytes[target.SourceIndex + (ulong)startingIndex + i]);
                         }
                     }

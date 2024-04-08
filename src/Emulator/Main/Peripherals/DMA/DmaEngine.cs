@@ -50,18 +50,18 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         sysbus.ReadBytes(sourceAddress, request.Size, buffer, 0);
                         response.ReadAddress += (ulong)request.Size;
-                         Console.WriteLine("Debug 1");
+                         Console.WriteLine("DmaEngine source 1");
                     }
                     else if (request.DecrementReadAddress)
                     {    response.ReadAddress -= (ulong)request.Size;
                         sysbus.ReadBytes(sourceAddress, request.Size, buffer, 0);
                        
-                         Console.WriteLine("Debug 2");
+                         Console.WriteLine("DmaEngine source 2");
                     }
                     else
                     {
                         sysbus.ReadBytes(sourceAddress, (int)request.ReadTransferType, buffer, 0);
-                         Console.WriteLine("Debug 3");
+                         Console.WriteLine(" DmaEngine source 3");
                     }
                 }
                 else if(whatIsAt != null)
@@ -121,19 +121,19 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         sysbus.WriteBytes(buffer, destinationAddress);
                         response.WriteAddress += (ulong)request.Size;
-                         Console.WriteLine("Debug 4");
+                         Console.WriteLine("DmaEngine dest 1");
                     }
                      else if(request.DecrementWriteAddress)
                     {   response.WriteAddress -= (ulong)request.Size;
                         sysbus.WriteBytes(buffer, destinationAddress);
                         
-                         Console.WriteLine("Debug 5");
+                         Console.WriteLine("DmaEngine dest 2");
                     }
                     else
                     {
                         // if the place to write is memory and we're not incrementing address, effectively only the last byte is written
                         sysbus.WriteByte(destinationAddress, buffer[buffer.Length - 1]);
-                         Console.WriteLine("Debug 6");
+                         Console.WriteLine("DmaEngine dest 3");
                     }
                 }
                 else
