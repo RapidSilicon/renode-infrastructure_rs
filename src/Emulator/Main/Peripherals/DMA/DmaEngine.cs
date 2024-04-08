@@ -50,10 +50,18 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         sysbus.ReadBytes(sourceAddress, request.Size, buffer, 0);
                         response.ReadAddress += (ulong)request.Size;
+                         Console.WriteLine("Debug 1");
+                    }
+                    else if (request.DecrementReadAddress)
+                    {    response.ReadAddress -= (ulong)request.Size;
+                        sysbus.ReadBytes(sourceAddress, request.Size, buffer, 0);
+                       
+                         Console.WriteLine("Debug 2");
                     }
                     else
                     {
                         sysbus.ReadBytes(sourceAddress, (int)request.ReadTransferType, buffer, 0);
+                         Console.WriteLine("Debug 3");
                     }
                 }
                 else if(whatIsAt != null)
@@ -77,12 +85,24 @@ namespace Antmicro.Renode.Peripherals.DMA
                         default:
                             throw new ArgumentOutOfRangeException();
                         }
+                       
                         transferred += (int)request.ReadTransferType;
+                         
+                     
                         if(request.IncrementReadAddress)
                         {
                             offset += request.SourceIncrementStep;
                             response.ReadAddress += request.SourceIncrementStep;
+                            
                         }
+                        else
+                      
+                        {
+                            offset -= request.SourceIncrementStep;
+                            response.ReadAddress -= request.SourceIncrementStep;
+                             
+                        }
+
                     }
                 }
             }
@@ -101,11 +121,19 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         sysbus.WriteBytes(buffer, destinationAddress);
                         response.WriteAddress += (ulong)request.Size;
+                         Console.WriteLine("Debug 4");
+                    }
+                     else if(request.DecrementWriteAddress)
+                    {   response.WriteAddress -= (ulong)request.Size;
+                        sysbus.WriteBytes(buffer, destinationAddress);
+                        
+                         Console.WriteLine("Debug 5");
                     }
                     else
                     {
                         // if the place to write is memory and we're not incrementing address, effectively only the last byte is written
                         sysbus.WriteByte(destinationAddress, buffer[buffer.Length - 1]);
+                         Console.WriteLine("Debug 6");
                     }
                 }
                 else
@@ -128,11 +156,20 @@ namespace Antmicro.Renode.Peripherals.DMA
                         default:
                             throw new ArgumentOutOfRangeException();
                         }
+                        
                         transferred += (int)request.WriteTransferType;
+                       
                         if(request.IncrementWriteAddress)
                         {
                             offset += request.DestinationIncrementStep;
                             response.WriteAddress += request.DestinationIncrementStep;
+                            
+                        }
+                        else
+                        {
+                            offset -= request.DestinationIncrementStep;
+                            response.WriteAddress -= request.DestinationIncrementStep;
+                           
                         }
                     }
                 }
@@ -144,4 +181,3 @@ namespace Antmicro.Renode.Peripherals.DMA
         private readonly IBusController sysbus;
     }
 }
-

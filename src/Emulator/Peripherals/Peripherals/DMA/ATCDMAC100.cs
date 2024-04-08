@@ -43,8 +43,11 @@ namespace Antmicro.Renode.Peripherals.DMA
             base.Reset();
             UpdateInterrupts();
         }
+
         public GPIO IRQ { get; }
+
         public long Size => 0x400;
+        
         private void BuildRegisters()
         {
             Registers.Configuration.Define(this)
@@ -99,6 +102,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                 this.Log(LogLevel.Info, "Interrupt unset for channel");
             }
         }
+
         private readonly DmaEngine engine;
         private readonly Channel[] channels;
         private const int NumberOfChannels = 8;
@@ -211,7 +215,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                         writeCallback: (_, value) =>
                         {
                             descriptor.dstwidth = value;
-                            parent.InfoLog("destination width {0}", descriptor.dstwidth);
+                            parent.InfoLog("Destination width : {0}", descriptor.dstwidth);
                         },
                         valueProviderCallback: _ => descriptor.dstwidth,
                         name: "DSTWIDTH")
@@ -219,7 +223,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                         writeCallback: (_, value) =>
                         {
                             descriptor.srcwidth = value;
-                            parent.InfoLog("source width {0} ", descriptor.srcwidth);
+                            parent.InfoLog("Source width : {0} ", descriptor.srcwidth);
                         },
                         valueProviderCallback: _ => descriptor.srcwidth,
                         name: "SRCWIDTH")
@@ -227,25 +231,13 @@ namespace Antmicro.Renode.Peripherals.DMA
                         writeCallback: (_, value) =>
                         {
                             descriptor.blockSize = value;
-                            parent.InfoLog("source burst size {0} ", descriptor.blockSize);
-                           // if (descriptor.Enabled)
-                            //    Transfer();
-                            // LinkLoad();
-                           // else
-                               // parent.InfoLog("channel disable");
+                            parent.InfoLog("Source burst size {0} ", descriptor.blockSize);
                         },
                         valueProviderCallback: _ => descriptor.blockSize,
                         name: "SRCBURSTSIZE")
                     .WithReservedBits(25, 4)
                     .WithFlag(29, FieldMode.Read | FieldMode.Write,
-                        writeCallback: (_, value) =>
-                        {
-                            descriptor.priority = value;
-                            if (value)
-                                parent.InfoLog(" priority enable");
-                            else
-                                parent.InfoLog(" priority disable");
-                        },
+                        writeCallback: (_, value) => descriptor.priority = value,
                         name: "PRIORITY")
                     .WithFlag(30, FieldMode.Read | FieldMode.Write,
                         writeCallback: (_, value) => descriptor.SRCREQSELB5 = value,
@@ -253,51 +245,36 @@ namespace Antmicro.Renode.Peripherals.DMA
                     .WithFlag(31, FieldMode.Read | FieldMode.Write,
                         writeCallback: (_, value) => descriptor.DSTREQSELB5 = value,
                         name: "DSTREQSELB5")
-                 .WithChangeCallback((_, __) => { if ((descriptor.Enabled) && (LinkStructureAddress == 0)) {Transfer();} 
-                                                   if ((descriptor.Enabled) && (LinkStructureAddress != 0)) {LinkLoad();}  })
+                    .WithChangeCallback((_, __) => { if ((descriptor.Enabled) && (LinkStructureAddress == 0)) {Transfer();} 
+                                                     if ((descriptor.Enabled) && (LinkStructureAddress != 0)) {LinkLoad();}  })
                 ;
                 SourceAddressRegister = new DoubleWordRegister(parent)
                     .WithValueField(0, 32,
-                        writeCallback: (_, value) =>
-                        {
-                            descriptor.sourceAddress = (uint)value;
-                            parent.InfoLog("Execute Source Address register");
-                        },
+                        writeCallback: (_, value) => descriptor.sourceAddress = (uint)value,
                         valueProviderCallback: _ => descriptor.sourceAddress,
                         name: "SRCADDR")
                 ;
                 DestinationAddressRegister = new DoubleWordRegister(parent)
                     .WithValueField(0, 32,
-                        writeCallback: (_, value) =>
-                        {
-                            descriptor.destinationAddress = (uint)value;
-                            parent.InfoLog("Execute Destination Address register");
-                        },
+                        writeCallback: (_, value) => descriptor.destinationAddress = (uint)value,
                         valueProviderCallback: _ => descriptor.destinationAddress,
                         name: "DSTADDR")
                 ;
                 TransferSizeRegister = new DoubleWordRegister(parent)
                     .WithValueField(0, 22,
-                        writeCallback: (_, value) =>
-                        {
-                            descriptor.TranSize = (uint)value;
-                            parent.InfoLog("Transfer size {0} ", descriptor.TranSize);
-                        },
+                        writeCallback: (_, value) => descriptor.TranSize = (uint)value,
                         name: "TRANSIZE")
                     .WithReservedBits(22, 9)
                 ;
                 LinkListPointerRegister = new DoubleWordRegister(parent)
                     .WithReservedBits(0, 2)
                     .WithValueField(2, 30,
-                        writeCallback: (_, value) =>
-                        {
-                            descriptor.linkAddress = (uint)value;
-                            parent.InfoLog("Execute Link Address register");
-                        },
+                        writeCallback: (_, value) => descriptor.linkAddress = (uint)value,
                         valueProviderCallback: _ => descriptor.linkAddress,
                         name: "LLPOINTER")
                 ;
             }
+
             public void Reset()
             {
                 descriptor = default(Descriptor);
@@ -321,7 +298,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                             descriptor.Enabled = false;
                             descriptor = default(Descriptor);
                             descriptorAddress = null;
-                            parent.InfoLog("channel abort asserted");
+                            parent.InfoLog("Channel abort asserted");
                             abortstatus = true;
                         }
                     }
@@ -351,11 +328,13 @@ namespace Antmicro.Renode.Peripherals.DMA
             public bool ChEN => descriptor.Enabled;
             public bool channelabort;
             public bool abortstatus;
+
             public void LinkLoad()
             {
                 parent.InfoLog("Link Loaded");
                 StartTransferInner();
             }
+
             private void StartTransferInner()
             {
                 if (isInProgress)
@@ -373,7 +352,6 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         loaded = true;
                         LoadDescriptor();
-                        parent.InfoLog("Load next descriptor");
                     }
                 }
                 while (loaded);
@@ -386,7 +364,6 @@ namespace Antmicro.Renode.Peripherals.DMA
                 var data = parent.sysbus.ReadBytes(address, DescriptorSize);
                 descriptorAddress = address;
                 descriptor = Packet.Decode<Descriptor>(data);
-                parent.InfoLog("Load descriptor");
                 parent.Log(LogLevel.Info, "Channel #{0} data {1}", Index, BitConverter.ToString(data));
                 parent.Log(LogLevel.Info, "Channel #{0} Loaded {1}", Index, descriptor.PrettyString);
             }
@@ -397,7 +374,18 @@ namespace Antmicro.Renode.Peripherals.DMA
                     return;
                 }
                 do
-                {
+                {    
+                    var blockSizeMultiplier = Math.Min(TranSize, BlockSizeMultiplier);
+                    if (descriptor.SrcAddrCtrl==AddressMode.Decrement)
+                    {
+                    descriptor.sourceAddress -= SourceIncrement * blockSizeMultiplier;
+                    }
+                    if (descriptor.DstAddrCtrl==AddressMode.Decrement)
+                    {
+                    descriptor.destinationAddress -= DestinationIncrement * blockSizeMultiplier;
+                    }
+                
+
                     var request = new Request(
                         source: new Place(descriptor.sourceAddress),
                         destination: new Place(descriptor.destinationAddress),
@@ -405,25 +393,35 @@ namespace Antmicro.Renode.Peripherals.DMA
                         readTransferType: SizeAsTransferType,
                         writeTransferType: SizeAsTransferType,
                         sourceIncrementStep: SourceIncrement,
-                        destinationIncrementStep: DestinationIncrement
+                        destinationIncrementStep: DestinationIncrement,
+                        incrementReadAddress:true,  //source
+                        incrementWriteAddress:false,  //destination
+                        decrementReadAddress:false,  //source
+                        decrementWriteAddress:true  //destination
+
                     );
+                    
                     parent.Log(LogLevel.Info, "Channel #{0} Performing Transfer", Index);
-                    parent.engine.IssueCopy(request);
-                    var blockSizeMultiplier = Math.Min(TranSize, BlockSizeMultiplier);
-                    parent.InfoLog("Multiplier {0}", blockSizeMultiplier);
+                    parent.engine.IssueCopy(request); 
                     if (blockSizeMultiplier == TranSize)
                     {
                         descriptor.TranSize = 0;
-                        parent.InfoLog("Blocksize multiplier equal to Transfer size {0}", descriptor.TranSize);
                         interruptTCstatus = true;
                     }
                     else
                     {
                         descriptor.TranSize -= blockSizeMultiplier;
-                        parent.InfoLog("Transfer size decremented by {0}", descriptor.TranSize);
                     }
-                    descriptor.sourceAddress += SourceIncrement * blockSizeMultiplier;
-                    descriptor.destinationAddress += DestinationIncrement * blockSizeMultiplier;
+                   
+                    if ((descriptor.SrcAddrCtrl==AddressMode.Increment) || (descriptor.SrcAddrCtrl==AddressMode.Fixed))
+                     {
+                        descriptor.sourceAddress += SourceIncrement * blockSizeMultiplier;
+                     }
+                    if ((descriptor.DstAddrCtrl==AddressMode.Increment) || (descriptor.DstAddrCtrl==AddressMode.Fixed))
+                     {
+                       descriptor.destinationAddress += DestinationIncrement * blockSizeMultiplier;
+                     }
+                    
                 }
                 while (descriptor.TranSize != 0);
                 parent.UpdateInterrupts();
@@ -436,37 +434,21 @@ namespace Antmicro.Renode.Peripherals.DMA
                     switch (descriptor.blockSize)
                     {
                         case BlockSizeMode.Unit1:
-                            parent.Log(LogLevel.Info, "1 transfer");
                             return 1u << (byte)descriptor.blockSize;
-
                         case BlockSizeMode.Unit2:
-                            parent.Log(LogLevel.Info, "2 transfers");
                             return 1u << (byte)descriptor.blockSize;
-
                         case BlockSizeMode.Unit4:
-                            parent.Log(LogLevel.Info, "4 transfers");
                             return 1u << (byte)descriptor.blockSize;
-
                         case BlockSizeMode.Unit8:
-                            parent.Log(LogLevel.Info, "8 transfers");
                             return 1u << (byte)descriptor.blockSize;
-
                         case BlockSizeMode.Unit16:
-                            parent.Log(LogLevel.Info, "16 transfers");
                             return 1u << (byte)descriptor.blockSize;
-
                         case BlockSizeMode.Unit32:
-                            parent.Log(LogLevel.Info, "32 transfers");
                             return 1u << (byte)descriptor.blockSize;
-
                         case BlockSizeMode.Unit64:
-                            parent.Log(LogLevel.Info, "64 transfers");
                             return 1u << (byte)descriptor.blockSize;
-
                         case BlockSizeMode.Unit128:
-                            parent.Log(LogLevel.Info, "128 transfers");
                             return 1u << (byte)descriptor.blockSize;
-
                         default:
                             parent.Log(LogLevel.Warning, "Channel #{0} Invalid Block Size Mode value.", Index);
                             return 0;
@@ -476,15 +458,13 @@ namespace Antmicro.Renode.Peripherals.DMA
 
             private uint TranSize => (uint)descriptor.TranSize;
             private ulong LinkStructureAddress => (ulong)descriptor.linkAddress << 2;
-            private uint SourceIncrement => descriptor.SrcAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.srcwidth) << (byte)descriptor.SrcAddrCtrl);
-            private uint DestinationIncrement => descriptor.DstAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.dstwidth) << (byte)descriptor.DstAddrCtrl);
+            private uint SourceIncrement => descriptor.SrcAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.srcwidth));
+            private uint DestinationIncrement => descriptor.DstAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.dstwidth));
             private TransferType SizeAsTransferType => (TransferType)(1 << (byte)descriptor.srcwidth);
             private int Bytes => (int)Math.Min(TranSize, BlockSizeMultiplier) << (byte)descriptor.srcwidth;
 
             private Descriptor descriptor;
             private ulong? descriptorAddress;
-
-            // Accesses to sysbus may cause changes in signals, but we should ignore those during active transaction
             private bool isInProgress;
             private IFlagRegisterField InterruptTCMask;
             private readonly ATCDMAC100 parent;
@@ -502,6 +482,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                 Unit128 = 0x7,
 
             }
+
             protected enum AddressMode
             {
                 Increment = 0x0,
@@ -509,6 +490,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                 Fixed = 0x2,
                 Reserved = 0x3,
             }
+
             protected enum SizeMode
             {
                 Byte = 0x0,
@@ -520,8 +502,7 @@ namespace Antmicro.Renode.Peripherals.DMA
             [LeastSignificantByteFirst]
             private struct Descriptor
             {
-                public string PrettyString => $@"Descriptor {{
-            
+                public string PrettyString => $@"Descriptor {{        
     Enable: {Enabled},
     InterruptTCMask: {interruptTCMask},
     InterruptErrMask: {InterruptErrMask},
@@ -532,19 +513,19 @@ namespace Antmicro.Renode.Peripherals.DMA
     SrcAddrCtrl: {SrcAddrCtrl},
     DstMode: {DstMode},
     SrcMode: {SrcMode},
-    dstwidth: {dstwidth},
-    srcwidth: {srcwidth},
-    priority:{priority},
+    Dstwidth: {dstwidth},
+    Srcwidth: {srcwidth},
+    Priority:{priority},
     SRCREQSELB5:{SRCREQSELB5},
     DSTREQSELB5:{DSTREQSELB5}
     SrcBurstSize:{blockSize},
-    sourceAddress: 0x{sourceAddress:X},
-    destinationAddress: 0x{destinationAddress:X},
+    SourceAddress: 0x{sourceAddress:X},
+    DestinationAddress: 0x{destinationAddress:X},
     TranSize: {TranSize},
-    linkAddress: 0x{(linkAddress << 2):X}
+    LinkAddress: 0x{(linkAddress << 2):X}
 }}";
 
-                // Some of this fields are read only via sysbus, but can be loaded from memory
+                
                 // bits : starting position w.r.t register
 #pragma warning disable 649
                 [PacketField, Offset(doubleWords: 0, bits: 0), Width(1)]

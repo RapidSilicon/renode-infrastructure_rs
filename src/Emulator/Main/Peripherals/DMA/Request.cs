@@ -40,6 +40,23 @@ namespace Antmicro.Renode.Peripherals.DMA
             this.DestinationIncrementStep = destinationIncrementStep;
         }
 
+           public Request(Place source, Place destination, int size, TransferType readTransferType, TransferType writeTransferType, 
+            uint sourceIncrementStep, uint destinationIncrementStep, bool incrementReadAddress, 
+            bool incrementWriteAddress, bool decrementReadAddress ,bool decrementWriteAddress) : this()
+        {
+            this.Source = source;
+            this.Destination = destination;
+            this.Size = size;
+            this.ReadTransferType = readTransferType;
+            this.WriteTransferType = writeTransferType;
+            this.SourceIncrementStep = sourceIncrementStep;
+            this.DestinationIncrementStep = destinationIncrementStep;
+            this.IncrementReadAddress = incrementReadAddress;
+            this.IncrementWriteAddress = incrementWriteAddress;
+            this.DecrementReadAddress = decrementReadAddress;
+            this.DecrementWriteAddress = decrementWriteAddress;
+        }
+
         public Place Source { get; private set; }
         public Place Destination { get; private set; }
         public uint SourceIncrementStep { get; private set; }
@@ -49,6 +66,9 @@ namespace Antmicro.Renode.Peripherals.DMA
         public TransferType WriteTransferType { get; private set; }
         public bool IncrementReadAddress { get; private set; }
         public bool IncrementWriteAddress { get; private set; }
+        public bool DecrementReadAddress { get; private set; }
+        public bool DecrementWriteAddress { get; private set; }
+
+
     }
 }
-

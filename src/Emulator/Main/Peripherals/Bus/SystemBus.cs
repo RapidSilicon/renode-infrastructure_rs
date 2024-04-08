@@ -484,6 +484,7 @@ namespace Antmicro.Renode.Peripherals.Bus
                         checked
                         {
                             memory.ReadBytes(checked((long)(target.Offset - target.What.RegistrationPoint.Range.StartAddress + target.What.RegistrationPoint.Offset)), (int)target.SourceLength, destination, startIndex + (int)target.SourceIndex);
+                            Console.WriteLine("Sysbus check1");
                         }
                     }
                     else
@@ -501,6 +502,7 @@ namespace Antmicro.Renode.Peripherals.Bus
         {
             var result = new byte[count];
             ReadBytes(address, count, result, 0, onlyMemory, context);
+              Console.WriteLine("Sysbus check2");
             return result;
         }
 
