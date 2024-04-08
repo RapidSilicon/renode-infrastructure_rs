@@ -256,7 +256,7 @@ namespace Antmicro.Renode.Peripherals.Memory
 
             var read = 0;
             while(read < count)
-            {
+            {   Console.WriteLine("Mapped Memory read bytes");
                 var currentOffset = offset + read;
                 var localOffset = GetLocalOffset(currentOffset);
                 var segment = segments[GetSegmentNo(currentOffset)];
@@ -286,14 +286,14 @@ namespace Antmicro.Renode.Peripherals.Memory
         public void WriteBytes(long offset, byte[] array, int startingIndex, int count, ICPU context = null)
         {
             if(offset < 0 || offset > size - count)
-            {
+            {   
                 this.Log(LogLevel.Error, "Tried to write {0} bytes at offset 0x{1:X} outside the range of the peripheral 0x0 - 0x{2:X}", count, offset, size);
                 return;
             }
 
             var written = 0;
             while(written < count)
-            {
+            {   Console.WriteLine("Mapped Memory write bytes");
                 var currentOffset = offset + written;
                 var localOffset = GetLocalOffset(currentOffset);
                 var segment = segments[GetSegmentNo(currentOffset)];
