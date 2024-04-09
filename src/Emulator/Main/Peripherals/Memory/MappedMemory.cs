@@ -299,9 +299,9 @@ namespace Antmicro.Renode.Peripherals.Memory
                 var segment = segments[GetSegmentNo(currentOffset)];
                 var length = Math.Min(count - written, (int)(SegmentSize - localOffset));
                // Marshal.Copy(array, startingIndex + written, new IntPtr(segment.ToInt64() + localOffset), length);
-                Marshal.Copy(array, startingIndex - written, new IntPtr(segment.ToInt64() + localOffset), length);
+                Marshal.Copy(array, startingIndex - written, new IntPtr(segment.ToInt64() - localOffset), length);
                // written += length;
-               written += length;
+               written -= length;
 
                 InvalidateMemoryFragment(currentOffset, length);
             }
