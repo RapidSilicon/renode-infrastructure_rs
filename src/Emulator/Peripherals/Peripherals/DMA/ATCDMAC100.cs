@@ -504,7 +504,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                 }
 
             } 
-           // private bool SourceDec =>  if (descriptor.SrcAddrCtrl==AddressMode.Decrement)  {SourceDec=false;}
+
                 
            public bool SourceInc;
            public bool SourceDec;
@@ -514,7 +514,7 @@ namespace Antmicro.Renode.Peripherals.DMA
             
 
 
-            private bool DestinationMode => descriptor.DstAddrCtrl;
+           
 
             private Descriptor descriptor;
             private ulong? descriptorAddress;
