@@ -290,7 +290,7 @@ namespace Antmicro.Renode.Peripherals.Memory
                 this.Log(LogLevel.Error, "Tried to write {0} bytes at offset 0x{1:X} outside the range of the peripheral 0x0 - 0x{2:X}", count, offset, size);
                 return;
             }
-            Array.Reverse(array);
+           // Array.Reverse(array);
             var written = 0;
             while(written < count)
             {   Console.WriteLine("Mapped Memory write bytes");
