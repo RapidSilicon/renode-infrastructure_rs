@@ -468,7 +468,7 @@ namespace Antmicro.Renode.Peripherals.DMA
             private uint DestinationIncrement => descriptor.DstAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.dstwidth));
             private TransferType SizeAsTransferType => (TransferType)(1 << (byte)descriptor.srcwidth);
             private int Bytes => (int)Math.Min(TranSize, BlockSizeMultiplier) << (byte)descriptor.srcwidth;
-            private bool SourceMode
+           /* private bool SourceMode
             {
                set 
                 {
@@ -510,8 +510,13 @@ namespace Antmicro.Renode.Peripherals.DMA
            public bool SourceDec;
 
             public bool DestinationInc;
-             public bool DestinationDec;
-            
+             public bool DestinationDec;*/
+
+       private bool SourceInc => descriptor.SrcAddrCtrl == AddressMode.Increment;
+       private bool SourceDec => descriptor.SrcAddrCtrl == AddressMode.Decrement;
+
+     private bool DestinationInc => descriptor.DstAddrCtrl == AddressMode.Increment;
+       private bool DestinationDec => descriptor.DstAddrCtrl == AddressMode.Decrement;    
 
 
            
