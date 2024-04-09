@@ -535,8 +535,8 @@ namespace Antmicro.Renode.Peripherals.Bus
                     {
                         checked
                         {    Console.WriteLine("Sysbus WriteBytes 2");
-                           // multibytePeripheral.WriteBytes(checked((long)(target.Offset - target.What.RegistrationPoint.Range.StartAddress + target.What.RegistrationPoint.Offset)), bytes, startingIndex + (int)target.SourceIndex, (int)target.SourceLength);
-                            multibytePeripheral.WriteBytes(checked((long)(target.Offset - target.What.RegistrationPoint.Range.StartAddress + target.What.RegistrationPoint.Offset)), bytes, startingIndex - (int)target.SourceIndex, (int)target.SourceLength);
+                             multibytePeripheral.WriteBytes(checked((long)(target.Offset - target.What.RegistrationPoint.Range.StartAddress + target.What.RegistrationPoint.Offset)), bytes, startingIndex + (int)target.SourceIndex, (int)target.SourceLength);
+                           
                         }
                     }
                     else
