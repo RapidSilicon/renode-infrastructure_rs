@@ -376,14 +376,14 @@ namespace Antmicro.Renode.Peripherals.DMA
                 do
                 {    
                     var blockSizeMultiplier = Math.Min(TranSize, BlockSizeMultiplier);
-                  /*  if (descriptor.SrcAddrCtrl==AddressMode.Decrement)
+                    if (descriptor.SrcAddrCtrl==AddressMode.Decrement)
                     {
                     descriptor.sourceAddress -= SourceIncrement * blockSizeMultiplier;
                     }
                     if (descriptor.DstAddrCtrl==AddressMode.Decrement)
                     {
                     descriptor.destinationAddress -= DestinationIncrement * blockSizeMultiplier;
-                    }*/
+                    }
                 
 
                     var request = new Request(
@@ -394,10 +394,10 @@ namespace Antmicro.Renode.Peripherals.DMA
                         writeTransferType: SizeAsTransferType,
                         sourceIncrementStep: SourceIncrement,
                         destinationIncrementStep: DestinationIncrement,
-                        incrementReadAddress:true,  //source
-                        incrementWriteAddress:false,  //destination
-                        decrementReadAddress:false,  //source
-                        decrementWriteAddress:true  //destination
+                        incrementReadAddress:true,  //source increment
+                        incrementWriteAddress:false,  //destination increment
+                        decrementReadAddress:false,  //source increment
+                        decrementWriteAddress:true  //destination decrement
 
                     );
                     
@@ -412,14 +412,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         descriptor.TranSize -= blockSizeMultiplier;
                     }
-                   if (descriptor.SrcAddrCtrl==AddressMode.Decrement)
-                    {
-                    descriptor.sourceAddress -= SourceIncrement * blockSizeMultiplier;
-                    }
-                    if (descriptor.DstAddrCtrl==AddressMode.Decrement)
-                    {
-                    descriptor.destinationAddress -= DestinationIncrement * blockSizeMultiplier;
-                    }
+                   
                     if ((descriptor.SrcAddrCtrl==AddressMode.Increment) || (descriptor.SrcAddrCtrl==AddressMode.Fixed))
                      {
                         descriptor.sourceAddress += SourceIncrement * blockSizeMultiplier;
