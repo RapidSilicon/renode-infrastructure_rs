@@ -124,9 +124,9 @@ namespace Antmicro.Renode.Peripherals.DMA
                          Console.WriteLine("DmaEngine dest 1");
                     }
                      else if(request.DecrementWriteAddress)
-                    {   response.WriteAddress -= (ulong)request.Size;
+                    {   Array.Reverse(buffer);
                         sysbus.WriteBytes(buffer, destinationAddress);
-                        
+                         response.WriteAddress -= (ulong)request.Size;
                          Console.WriteLine("DmaEngine dest 2");
                     }
                     else
