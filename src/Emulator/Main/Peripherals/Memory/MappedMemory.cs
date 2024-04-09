@@ -27,11 +27,12 @@ using System.Reflection.Emit;
 using System.Reflection;
 #endif
 using Antmicro.Renode.Exceptions;
+using Endianess = ELFSharp.ELF.Endianess;
 
 namespace Antmicro.Renode.Peripherals.Memory
 {
     [Icon("memory")]
-    public sealed class MappedMemory : IBytePeripheral, IWordPeripheral, IDoubleWordPeripheral, IQuadWordPeripheral, IMapped, IDisposable, IKnownSize, ISpeciallySerializable, IMemory, IMultibyteWritePeripheral, ICanLoadFiles
+    public sealed class MappedMemory : IBytePeripheral, IWordPeripheral, IDoubleWordPeripheral, IQuadWordPeripheral, IMapped, IDisposable, IKnownSize, ISpeciallySerializable, IMemory, IMultibyteWritePeripheral, ICanLoadFiles, IEndiannessAware
     {
 #if PLATFORM_WINDOWS
         static MappedMemory()
@@ -256,7 +257,7 @@ namespace Antmicro.Renode.Peripherals.Memory
 
             var read = 0;
             while(read < count)
-            {   Console.WriteLine("Mapped Memory read bytes");
+            {
                 var currentOffset = offset + read;
                 var localOffset = GetLocalOffset(currentOffset);
                 var segment = segments[GetSegmentNo(currentOffset)];
@@ -286,11 +287,11 @@ namespace Antmicro.Renode.Peripherals.Memory
         public void WriteBytes(long offset, byte[] array, int startingIndex, int count, ICPU context = null)
         {
             if(offset < 0 || offset > size - count)
-            {   
+            {
                 this.Log(LogLevel.Error, "Tried to write {0} bytes at offset 0x{1:X} outside the range of the peripheral 0x0 - 0x{2:X}", count, offset, size);
                 return;
             }
-           
+
             var written = 0;
             while(written < count)
             {
@@ -303,7 +304,6 @@ namespace Antmicro.Renode.Peripherals.Memory
 
                 InvalidateMemoryFragment(currentOffset, length);
             }
-            
         }
 
         public void WriteString(long offset, string value)
@@ -378,6 +378,9 @@ namespace Antmicro.Renode.Peripherals.Memory
                 return size;
             }
         }
+
+        // The endianness of MappedMemory matches the host endianness because it is directly backed by host memory
+        public Endianess Endianness => BitConverter.IsLittleEndian ? Endianess.LittleEndian : Endianess.BigEndian;
 
         public void InitWithRandomData()
         {
@@ -711,4 +714,3 @@ namespace Antmicro.Renode.Peripherals.Memory
         }
     }
 }
-

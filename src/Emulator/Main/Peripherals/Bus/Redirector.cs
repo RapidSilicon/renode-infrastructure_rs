@@ -1,3 +1,4 @@
+
 //
 // Copyright (c) 2010-2023 Antmicro
 // Copyright (c) 2011-2015 Realtime Embedded
@@ -34,13 +35,12 @@ namespace Antmicro.Renode.Peripherals.Bus
         }
 
         public byte ReadByte(long offset)
-        {   Console.WriteLine("ReadByte " );
+        {
             return systemBus.ReadByte(redirectedAddress + checked((ulong)offset));
         }
 
         public void WriteByte(long offset, byte value)
-        {  
-            Console.WriteLine("WriteByte" );
+        {
             systemBus.WriteByte(redirectedAddress + checked((ulong)offset), value);
         }
 
@@ -77,12 +77,12 @@ namespace Antmicro.Renode.Peripherals.Bus
         }
 
         public byte[] ReadBytes(long offset, int count, ICPU context = null)
-        {   Console.WriteLine("ReadBytes array" );
+        {
             return systemBus.ReadBytes(redirectedAddress + checked((ulong)offset), count, context: context);
         }
 
         public void WriteBytes(long offset, byte[] array, int startingIndex, int count, ICPU context = null)
-        {  Console.WriteLine("Write bytes array" );
+        {
             systemBus.WriteBytes(array, redirectedAddress + checked((ulong)offset), count, context: context);
         }
 
@@ -100,4 +100,3 @@ namespace Antmicro.Renode.Peripherals.Bus
         private readonly IBusController systemBus;
     }
 }
-

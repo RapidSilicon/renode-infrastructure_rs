@@ -39,10 +39,10 @@ namespace Antmicro.Renode.Peripherals.DMA
             this.SourceIncrementStep = sourceIncrementStep;
             this.DestinationIncrementStep = destinationIncrementStep;
         }
-
-           public Request(Place source, Place destination, int size, TransferType readTransferType, TransferType writeTransferType, 
+       //Add new Constructor for increment / decrement addressing modes of atcdmac
+        public Request(Place source, Place destination, int size, TransferType readTransferType, TransferType writeTransferType, 
             uint sourceIncrementStep, uint destinationIncrementStep, bool incrementReadAddress, 
-            bool incrementWriteAddress, bool decrementReadAddress ,bool decrementWriteAddress) : this()
+            bool incrementWriteAddress, bool decrementReadAddress, bool decrementWriteAddress) : this()
         {
             this.Source = source;
             this.Destination = destination;

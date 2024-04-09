@@ -262,7 +262,11 @@ namespace Antmicro.Renode.Peripherals.DMA
                 ;
                 TransferSizeRegister = new DoubleWordRegister(parent)
                     .WithValueField(0, 22,
-                        writeCallback: (_, value) => descriptor.TranSize = (uint)value,
+                        writeCallback: (_, value) =>
+                        {                 
+                           descriptor.TranSize = (uint)value
+                           parent.InfoLog("Transfer size {0} ", descriptor.TranSize);
+                        },
                         name: "TRANSIZE")
                     .WithReservedBits(22, 9)
                 ;
@@ -384,8 +388,6 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                     descriptor.destinationAddress -= DestinationIncrement * blockSizeMultiplier;
                     }
-                
-
                     var request = new Request(
                         source: new Place(descriptor.sourceAddress),
                         destination: new Place(descriptor.destinationAddress),
@@ -394,19 +396,11 @@ namespace Antmicro.Renode.Peripherals.DMA
                         writeTransferType: SizeAsTransferType,
                         sourceIncrementStep: SourceIncrement,
                         destinationIncrementStep: DestinationIncrement,
-                       /* incrementReadAddress:false,  //source increment
-                        incrementWriteAddress:true,  //destination increment
-                        decrementReadAddress:true,  //source decrement
-                        decrementWriteAddress:false  //destination decrement*/
-
-                        incrementReadAddress:SourceInc,  //source increment
-                        incrementWriteAddress:DestinationInc,  //destination increment
-                        decrementReadAddress:SourceDec,  //source dec
-                        decrementWriteAddress:DestinationDec  //destination decrement
-
-
+                        incrementReadAddress:SourceIncrementMode,  
+                        incrementWriteAddress:DestinationIncrementMode,  
+                        decrementReadAddress:SourceDecrementMode, 
+                        decrementWriteAddress:DestinationDecrementMode 
                     );
-                    
                     parent.Log(LogLevel.Info, "Channel #{0} Performing Transfer", Index);
                     parent.engine.IssueCopy(request); 
                     if (blockSizeMultiplier == TranSize)
@@ -418,7 +412,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         descriptor.TranSize -= blockSizeMultiplier;
                     }
-                   
+
                     if ((descriptor.SrcAddrCtrl==AddressMode.Increment) || (descriptor.SrcAddrCtrl==AddressMode.Fixed))
                      {
                         descriptor.sourceAddress += SourceIncrement * blockSizeMultiplier;
@@ -427,7 +421,6 @@ namespace Antmicro.Renode.Peripherals.DMA
                      {
                        descriptor.destinationAddress += DestinationIncrement * blockSizeMultiplier;
                      }
-                    
                 }
                 while (descriptor.TranSize != 0);
                 parent.UpdateInterrupts();
@@ -468,58 +461,10 @@ namespace Antmicro.Renode.Peripherals.DMA
             private uint DestinationIncrement => descriptor.DstAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.dstwidth));
             private TransferType SizeAsTransferType => (TransferType)(1 << (byte)descriptor.srcwidth);
             private int Bytes => (int)Math.Min(TranSize, BlockSizeMultiplier) << (byte)descriptor.srcwidth;
-           /* private bool SourceMode
-            {
-               set 
-                {
-                  if (descriptor.SrcAddrCtrl==AddressMode.Increment) 
-                  {
-                       SourceInc=true;
-                       SourceDec=false;
-                  }
-                  if (descriptor.SrcAddrCtrl==AddressMode.Decrement) 
-                  {
-                       SourceInc=false;
-                       SourceDec=true;
-                  }
-
-                }
-
-            } 
-            private bool DestinationMode
-            {
-               set 
-                {
-                  if (descriptor.DstAddrCtrl==AddressMode.Increment) 
-                  {
-                       DestinationInc=true;
-                       DestinationDec=false;
-                  }
-                  if (descriptor.SrcAddrCtrl==AddressMode.Decrement) 
-                  {
-                       DestinationInc=false;
-                       DestinationDec=true;
-                  }
-
-                }
-
-            } 
-
-                
-           public bool SourceInc;
-           public bool SourceDec;
-
-            public bool DestinationInc;
-             public bool DestinationDec;*/
-
-       private bool SourceInc => descriptor.SrcAddrCtrl == AddressMode.Increment;
-       private bool SourceDec => descriptor.SrcAddrCtrl == AddressMode.Decrement;
-
-     private bool DestinationInc => descriptor.DstAddrCtrl == AddressMode.Increment;
-       private bool DestinationDec => descriptor.DstAddrCtrl == AddressMode.Decrement;    
-
-
-           
+            private bool SourceIncrementMode => descriptor.SrcAddrCtrl == AddressMode.Increment;
+            private bool SourceDecrementMode => descriptor.SrcAddrCtrl == AddressMode.Decrement;
+            private bool DestinationIncrementMode => descriptor.DstAddrCtrl == AddressMode.Increment;
+            private bool DestinationDecrementMode => descriptor.DstAddrCtrl == AddressMode.Decrement; 
 
             private Descriptor descriptor;
             private ulong? descriptorAddress;
