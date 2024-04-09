@@ -1,4 +1,3 @@
-
 //
 // Copyright (c) 2010-2023 Antmicro
 // Copyright (c) 2011-2015 Realtime Embedded
@@ -28,12 +27,11 @@ using System.Reflection.Emit;
 using System.Reflection;
 #endif
 using Antmicro.Renode.Exceptions;
-using Endianess = ELFSharp.ELF.Endianess;
 
 namespace Antmicro.Renode.Peripherals.Memory
 {
     [Icon("memory")]
-    public sealed class MappedMemory : IBytePeripheral, IWordPeripheral, IDoubleWordPeripheral, IQuadWordPeripheral, IMapped, IDisposable, IKnownSize, ISpeciallySerializable, IMemory, IMultibyteWritePeripheral, ICanLoadFiles, IEndiannessAware
+    public sealed class MappedMemory : IBytePeripheral, IWordPeripheral, IDoubleWordPeripheral, IQuadWordPeripheral, IMapped, IDisposable, IKnownSize, ISpeciallySerializable, IMemory, IMultibyteWritePeripheral, ICanLoadFiles
     {
 #if PLATFORM_WINDOWS
         static MappedMemory()
@@ -379,9 +377,6 @@ namespace Antmicro.Renode.Peripherals.Memory
                 return size;
             }
         }
-
-        // The endianness of MappedMemory matches the host endianness because it is directly backed by host memory
-        public Endianess Endianness => BitConverter.IsLittleEndian ? Endianess.LittleEndian : Endianess.BigEndian;
 
         public void InitWithRandomData()
         {
