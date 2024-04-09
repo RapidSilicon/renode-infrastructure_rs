@@ -394,10 +394,16 @@ namespace Antmicro.Renode.Peripherals.DMA
                         writeTransferType: SizeAsTransferType,
                         sourceIncrementStep: SourceIncrement,
                         destinationIncrementStep: DestinationIncrement,
-                        incrementReadAddress:false,  //source increment
+                       /* incrementReadAddress:false,  //source increment
                         incrementWriteAddress:true,  //destination increment
-                        decrementReadAddress:true,  //source increment
-                        decrementWriteAddress:false  //destination decrement
+                        decrementReadAddress:true,  //source decrement
+                        decrementWriteAddress:false  //destination decrement*/
+
+                        incrementReadAddress:SourceInc,  //source increment
+                        incrementWriteAddress:DestinationInc,  //destination increment
+                        decrementReadAddress:SourceDec,  //source dec
+                        decrementWriteAddress:DestinationDec  //destination decrement
+
 
                     );
                     
@@ -462,6 +468,53 @@ namespace Antmicro.Renode.Peripherals.DMA
             private uint DestinationIncrement => descriptor.DstAddrCtrl == AddressMode.Fixed ? 0u : ((1u << (byte)descriptor.dstwidth));
             private TransferType SizeAsTransferType => (TransferType)(1 << (byte)descriptor.srcwidth);
             private int Bytes => (int)Math.Min(TranSize, BlockSizeMultiplier) << (byte)descriptor.srcwidth;
+            private bool SourceMode
+            {
+               set 
+                {
+                  if (descriptor.SrcAddrCtrl==AddressMode.Increment) 
+                  {
+                       SourceInc=true;
+                       SourceDec=false;
+                  }
+                  if (descriptor.SrcAddrCtrl==AddressMode.Decrement) 
+                  {
+                       SourceInc=false;
+                       SourceDec=true;
+                  }
+
+                }
+
+            } 
+            private bool DestinationMode
+            {
+               set 
+                {
+                  if (descriptor.DstAddrCtrl==AddressMode.Increment) 
+                  {
+                       DestinationInc=true;
+                       DestinationDec=false;
+                  }
+                  if (descriptor.SrcAddrCtrl==AddressMode.Decrement) 
+                  {
+                       DestinationInc=false;
+                       DestinationDec=true;
+                  }
+
+                }
+
+            } 
+           // private bool SourceDec =>  if (descriptor.SrcAddrCtrl==AddressMode.Decrement)  {SourceDec=false;}
+                
+           public bool SourceInc;
+           public bool SourceDec;
+
+            public bool DestinationInc;
+             public bool DestinationDec;
+            
+
+
+            private bool DestinationMode => descriptor.DstAddrCtrl;
 
             private Descriptor descriptor;
             private ulong? descriptorAddress;
