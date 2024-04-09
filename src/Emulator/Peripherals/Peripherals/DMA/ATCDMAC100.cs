@@ -529,7 +529,7 @@ namespace Antmicro.Renode.Peripherals.DMA
 }}";
 
                 
-                // bits : starting position w.r.t register
+// bits : starting position w.r.t register
 #pragma warning disable 649
                 [PacketField, Offset(doubleWords: 0, bits: 0), Width(1)]
                 public bool Enabled;

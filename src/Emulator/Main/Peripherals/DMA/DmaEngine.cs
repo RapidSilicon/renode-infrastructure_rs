@@ -109,7 +109,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                         sysbus.WriteBytes(buffer, destinationAddress);
                         response.WriteAddress += (ulong)request.Size;
                     }
-                    ////condition for decrement destination address in atcdmac
+                    //condition for decrement destination address in atcdmac
                     else if(request.DecrementWriteAddress)
                     {   
                         Array.Reverse(buffer);
