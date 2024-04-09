@@ -53,9 +53,10 @@ namespace Antmicro.Renode.Peripherals.DMA
                          Console.WriteLine("DmaEngine source 1");
                     }
                     else if (request.DecrementReadAddress)
-                    {    response.ReadAddress -= (ulong)request.Size;
+                    {    
                         sysbus.ReadBytes(sourceAddress, request.Size, buffer, 0);
-                       
+                        response.ReadAddress += (ulong)request.Size;
+                        Array.Reverse(buffer);
                          Console.WriteLine("DmaEngine source 2");
                     }
                     else
@@ -97,7 +98,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                         }
                         else
                       
-                        {
+                        {   
                             offset -= request.SourceIncrementStep;
                             response.ReadAddress -= request.SourceIncrementStep;
                              

@@ -394,10 +394,10 @@ namespace Antmicro.Renode.Peripherals.DMA
                         writeTransferType: SizeAsTransferType,
                         sourceIncrementStep: SourceIncrement,
                         destinationIncrementStep: DestinationIncrement,
-                        incrementReadAddress:true,  //source increment
-                        incrementWriteAddress:false,  //destination increment
-                        decrementReadAddress:false,  //source increment
-                        decrementWriteAddress:true  //destination decrement
+                        incrementReadAddress:false,  //source increment
+                        incrementWriteAddress:true,  //destination increment
+                        decrementReadAddress:true,  //source increment
+                        decrementWriteAddress:false  //destination decrement
 
                     );
                     
