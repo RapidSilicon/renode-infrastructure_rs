@@ -264,7 +264,7 @@ namespace Antmicro.Renode.Peripherals.DMA
                     .WithValueField(0, 22,
                         writeCallback: (_, value) =>
                         {                 
-                           descriptor.TranSize = (uint)value
+                           descriptor.TranSize = (uint)value;
                            parent.InfoLog("Transfer size {0} ", descriptor.TranSize);
                         },
                         name: "TRANSIZE")
