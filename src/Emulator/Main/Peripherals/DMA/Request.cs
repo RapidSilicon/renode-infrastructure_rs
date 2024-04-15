@@ -68,7 +68,6 @@ namespace Antmicro.Renode.Peripherals.DMA
         public bool IncrementWriteAddress { get; private set; }
         public bool DecrementReadAddress { get; private set; }
         public bool DecrementWriteAddress { get; private set; }
-
-
     }
 }
+
