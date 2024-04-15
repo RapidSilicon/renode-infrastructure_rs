@@ -710,3 +710,4 @@ namespace Antmicro.Renode.Peripherals.Memory
         }
     }
 }
+
