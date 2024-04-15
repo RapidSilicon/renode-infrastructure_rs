@@ -158,3 +158,4 @@ namespace Antmicro.Renode.Peripherals.DMA
         private readonly IBusController sysbus;
     }
 }
+
