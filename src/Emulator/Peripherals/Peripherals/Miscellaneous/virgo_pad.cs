@@ -14,7 +14,7 @@ using Antmicro.Renode.Utilities;
 
 namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
-    public class virgo_pad : BaseGPIOPort, IDoubleWordPeripheral, IKnownSize
+    public class virgo_pad : BasicDoubleWordPeripheral, IKnownSize  // BaseGPIOPort, 
     {
         public virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
         {
@@ -85,20 +85,20 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 base.OnGPIO(number, value);
                 irqManager.RefreshInterrupts();
             }
-        }
+        }*/
 
         public override void Reset()
         {
-            lock(locker)
-            {
+           // lock(locker)
+           // {
                 base.Reset();
-                irqManager.Reset();
-                registers.Reset();
-                IRQ.Unset();
-            }
+               // irqManager.Reset();
+               // registers.Reset();
+               // IRQ.Unset();
+           // }
         }
 
-        public GPIO IRQ { get; private set; }  */
+        public GPIO IRQ { get; private set; }  
         public long Size => 0x1000;
 
         private void PrepareRegisters()
