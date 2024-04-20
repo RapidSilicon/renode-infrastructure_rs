@@ -117,9 +117,9 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     this.InfoLog("Mux register"); 
                     })
                 .WithReservedBits(9, 23) 
-                ;
+                
                  }
-                }         
+                }) ;        
         }
 
        /* private void CalculateInterruptTypes()
