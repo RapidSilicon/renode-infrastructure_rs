@@ -6,15 +6,20 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
+using Antmicro.Renode.Exceptions;
+using Antmicro.Renode.Logging;
 using System.Linq;
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Core.Structure.Registers;
 using Antmicro.Renode.Peripherals.Bus;
 using Antmicro.Renode.Utilities;
+using Antmicro.Renode.Peripherals.GPIOPort;
 
 namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
-    public class virgo_pad : BasicDoubleWordPeripheral, IKnownSize  // BaseGPIOPort, 
+    public class virgo_pad : BaseGPIOPort, BasicDoubleWordPeripheral, IKnownSize  /
     {
         public virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
         {
@@ -103,10 +108,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
 
         private void PrepareRegisters()
         {
-            registers = new DoubleWordRegisterCollection(this, new Dictionary<long, DoubleWordRegister>
-            {
-                {(long)Registers.std_pu_PAD_GPIO_A_0_ctl, new DoubleWordRegister(this)
-                
+                Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)
                 .WithTaggedFlag("EN", 0)
                 .WithTag("DS", 1, 2)
                 .WithReservedBits(3, 2)
@@ -117,9 +119,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     this.InfoLog("Mux register"); 
                     })
                 .WithReservedBits(9, 23) 
-                
-                 }
-                }) ;        
+            ;      
         }
 
        /* private void CalculateInterruptTypes()
