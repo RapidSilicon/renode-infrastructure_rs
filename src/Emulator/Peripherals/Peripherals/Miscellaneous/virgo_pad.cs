@@ -19,7 +19,7 @@ using Antmicro.Renode.Peripherals.GPIOPort;
 
 namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
-    public class virgo_pad : BaseGPIOPort, BasicDoubleWordPeripheral, IKnownSize  /
+    public class virgo_pad : BaseGPIOPort, BasicDoubleWordPeripheral, IKnownSize  
     {
         public virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
         {
