@@ -80,16 +80,16 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 
                 switch(iomode[i])
                 {
-                case iomode.MainMode:
+                case IOMode.MainMode:
                 this.InfoLog("mode 1"); 
                 break;
-                case iomode.Fpga_pinMode:
+                case IOMode.Fpga_pinMode:
                 this.InfoLog("mode 2"); 
                 break;
-                case iomode.AlternativeMode:
+                case IOMode.AlternativeMode:
                 this.InfoLog("mode 3"); 
                 break;
-                case iomode.DebugMode:
+                case IOMode.DebugMode:
                 this.InfoLog("mode 4"); 
                 break;
                 default:
