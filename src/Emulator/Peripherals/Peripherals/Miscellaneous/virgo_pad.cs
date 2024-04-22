@@ -29,68 +29,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
          RegistersCollection = new DoubleWordRegisterCollection(this);
             PrepareRegisters();
         }
-
-     /*   public uint ReadDoubleWord(long offset)
-        {
-            lock(locker)
-            {
-                if(offset < 0x400)
-                {
-                    var mask = BitHelper.GetBits((uint)(offset >> 2) & 0xFF);
-                    var bits = BitHelper.GetBits(registers.Read(0));
-                    var result = new bool[8];
-                    for(var i = 0; i < 8; i++)
-                    {
-                        if(mask[i])
-                        {
-                            result[i] = bits[i];
-                        }
-                    }
-
-                    return BitHelper.GetValueFromBitsArray(result);
-                }
-
-                return registers.Read(offset);
-            }
-        }
-
-        public void WriteDoubleWord(long offset, uint value)
-        {
-            lock(locker)
-            {
-                if(offset < 0x400)
-                {
-                    var mask = BitHelper.GetBits((uint)(offset >> 2) & 0xFF);
-                    var bits = BitHelper.GetBits(value);
-                    for(var i = 0; i < 8; i++)
-                    {
-                        if(mask[i])
-                        {
-                            Connections[i].Set(bits[i]);
-                            State[i] = bits[i];
-                        }
-                    }
-                }
-                else
-                {
-                    registers.Write(offset, value);
-                }
-            }
-        }
-
-        public override void OnGPIO(int number, bool value)
-        {
-            if(number < 0 || number >= NumberOfGPIOs)
-            {
-                throw new ArgumentOutOfRangeException(string.Format("Gpio #{0} called, but only {1} lines are available", number, NumberOfGPIOs));
-            }
-
-            lock(locker)
-            {
-                base.OnGPIO(number, value);
-                irqManager.RefreshInterrupts();
-            }
-        }*/
+       
 
         public override void Reset()
         {
@@ -124,75 +63,50 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithReservedBits(3, 2)
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
-                .WithValueField(7, 2, FieldMode.Read|FieldMode.Write, name: "FUNCMUX",
+              /* .WithValueField(7, 2, FieldMode.Read|FieldMode.Write, name: "FUNCMUX",
                  writeCallback: (_, val) =>  {
                     this.InfoLog("Mux register"); 
-                    })
+                    })*/
+                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,
+                        writeCallback: (_, value) =>  selection((int)value),
+                        name: "FUNCMAX")
                 .WithReservedBits(9, 23) 
             ;      
         }
+       
 
-       /* private void CalculateInterruptTypes()
-        {
-            lock(locker)
+        private void selection(int i)
             {
-                var isBothEdgesSensitive = BitHelper.GetBits((uint)interruptBothEdgeField.Value);
-                var isLevelSensitive = BitHelper.GetBits((uint)interruptSenseField.Value);
-                var isActiveHighOrRisingEdge = BitHelper.GetBits((uint)interruptEventField.Value);
-
-                for(int i = 0; i < 8; i++)
+                
+                switch(iomode[i])
                 {
-                    if(isLevelSensitive[i])
-                    {
-                        irqManager.InterruptType[i] = isActiveHighOrRisingEdge[i]
-                                ? GPIOInterruptManager.InterruptTrigger.ActiveHigh
-                                : GPIOInterruptManager.InterruptTrigger.ActiveLow;
-                    }
-                    else
-                    {
-                        if(isBothEdgesSensitive[i])
-                        {
-                            irqManager.InterruptType[i] = GPIOInterruptManager.InterruptTrigger.BothEdges;
-                        }
-                        else
-                        {
-                            irqManager.InterruptType[i] = isActiveHighOrRisingEdge[i]
-                                ? GPIOInterruptManager.InterruptTrigger.RisingEdge
-                                : GPIOInterruptManager.InterruptTrigger.FallingEdge;
-                        }
-                    }
+                case iomode.MainMode:
+                this.InfoLog("mode 1"); 
+                break;
+                case iomode.Fpga_pinMode:
+                this.InfoLog("mode 2"); 
+                break;
+                case iomode.AlternativeMode:
+                this.InfoLog("mode 3"); 
+                break;
+                case iomode.DebugMode:
+                this.InfoLog("mode 4"); 
+                break;
+                default:
+                    this.InfoLog("Selector {0}: Non existitng possible value written as selection lines.", selector);
+                break;
                 }
-                irqManager.RefreshInterrupts();
             }
-        }
-
-        private uint CalculateMaskedInterruptValue()
-        {
-            var result = new bool[8];
-            for(var i = 0; i < 8; i++)
-            {
-                result[i] = irqManager.ActiveInterrupts.ElementAt(i) && irqManager.InterruptMask[i];
-            }
-            return BitHelper.GetValueFromBitsArray(result);
-        }
-
-        private DoubleWordRegisterCollection registers;
-        private readonly GPIOInterruptManager irqManager;
-        private readonly object locker;
-
-        private IValueRegisterField interruptSenseField;
-        private IValueRegisterField interruptBothEdgeField;
-        private IValueRegisterField interruptEventField;*/
-
+        private readonly IOMode[] iomode;
         private const int NumberOfGPIOs = 16;
-         private enum IOMode
+         protected enum IOMode 
         {
-            MainMode = 0x0, 
-            Fpga_pioMode = 0x1, 
-            AlternativeMode = 0x2, 
-            DebugMode = 0x3, 
+            MainMode = 0b00, 
+            Fpga_pinMode = 0b01, 
+            AlternativeMode = 0b10, 
+            DebugMode = 0b11, 
         }
-
+ 
         private enum Registers
         {
           //  pad_csr = 0x1000,
