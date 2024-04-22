@@ -19,14 +19,14 @@ using Antmicro.Renode.Peripherals.GPIOPort;
 
 namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
-    public class virgo_pad : BaseGPIOPort, BasicDoubleWordPeripheral, IKnownSize  
+    public class virgo_pad : BaseGPIOPort, IProvidesRegisterCollection<DoubleWordRegisterCollection>, IDoubleWordPeripheral, IKnownSize
     {
         public virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
         {
            // locker = new object();
            // IRQ = new GPIO();
             //irqManager = new GPIOInterruptManager(IRQ, State);
-
+         RegistersCollection = new DoubleWordRegisterCollection(this);
             PrepareRegisters();
         }
 
@@ -102,9 +102,19 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                // IRQ.Unset();
            // }
         }
-
+        public DoubleWordRegisterCollection RegistersCollection { get; }
         public GPIO IRQ { get; private set; }  
         public long Size => 0x1000;
+        public uint ReadDoubleWord(long offset)
+        {
+            return RegistersCollection.Read(offset);
+        }
+
+        public void WriteDoubleWord(long offset, uint value)
+        {
+            RegistersCollection.Write(offset, value);
+        }
+
 
         private void PrepareRegisters()
         {
@@ -175,6 +185,13 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         private IValueRegisterField interruptEventField;*/
 
         private const int NumberOfGPIOs = 16;
+         private enum IOMode
+        {
+            MainMode = 0x0, 
+            Fpga_pioMode = 0x1, 
+            AlternativeMode = 0x2, 
+            DebugMode = 0x3, 
+        }
 
         private enum Registers
         {
