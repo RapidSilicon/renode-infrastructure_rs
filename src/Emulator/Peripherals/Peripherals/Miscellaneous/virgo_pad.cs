@@ -64,13 +64,9 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithReservedBits(3, 2)
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
-              /* .WithValueField(7, 2, FieldMode.Read|FieldMode.Write, name: "FUNCMUX",
-                 writeCallback: (_, val) =>  {
-                    this.InfoLog("Mux register"); 
-                    })*/
-                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,
-                        writeCallback: (_, value) =>  selection((int)value),
-                        name: "FUNCMAX")
+                .WithEnumField<DoubleWordRegister, IOMode>(7, 2,
+                writeCallback: (_, value) =>  selection((int)value),
+                name: "FUNCMAX")
                 .WithReservedBits(9, 23) 
             ;      
         }

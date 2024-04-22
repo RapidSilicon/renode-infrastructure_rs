@@ -268,7 +268,6 @@
     <Compile Include="Peripherals\UART\STM32F7_USART.cs" />
     <Compile Include="Peripherals\DMA\Dma2DColorMode.cs" />
     <Compile Include="Peripherals\DMA\STM32DMA2D.cs" />
-    <Compile Include="Peripherals\DMA\ATCDMAC100.cs" />
     <Compile Include="Peripherals\Video\STM32LTDC.cs" />
     <Compile Include="Peripherals\Wireless\CC2538\InterruptRegister.cs" />
     <Compile Include="Peripherals\Wireless\CC2538\InterruptSource.cs" />
