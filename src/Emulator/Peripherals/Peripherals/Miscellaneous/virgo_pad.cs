@@ -27,7 +27,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
            // IRQ = new GPIO();
             //irqManager = new GPIOInterruptManager(IRQ, State);
          RegistersCollection = new DoubleWordRegisterCollection(this);
-          iomode = new iomode[NumberOfPins];
+          iomode = new iomode[NumberOfGPIOs];
             PrepareRegisters();
         }
        
