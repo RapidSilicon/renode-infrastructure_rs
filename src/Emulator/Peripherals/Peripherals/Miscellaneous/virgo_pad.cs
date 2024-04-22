@@ -93,7 +93,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 this.InfoLog("mode 4"); 
                 break;
                 default:
-                    this.InfoLog("Selector {0}: Non existitng possible value written as selection lines.", selector);
+                    this.InfoLog(" Non existitng possible value written as selection lines.");
                 break;
                 }
             }
@@ -104,7 +104,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             MainMode = 0b00, 
             Fpga_pinMode = 0b01, 
             AlternativeMode = 0b10, 
-            DebugMode = 0b11, 
+            DebugMode = 0b11
         }
  
         private enum Registers
