@@ -51,6 +51,13 @@ namespace Antmicro.Renode.Peripherals.DMA
                         sysbus.ReadBytes(sourceAddress, request.Size, buffer, 0, context: context);
                         response.ReadAddress += (ulong)request.Size;
                     }
+                    //condition for decrement source address in atcdmac
+                    else if(request.DecrementReadAddress)
+                    {    
+                        sysbus.ReadBytes(sourceAddress, request.Size, buffer, 0);
+                        response.ReadAddress += (ulong)request.Size;
+                        Array.Reverse(buffer);
+                    }
                     else
                     {
                         sysbus.ReadBytes(sourceAddress, (int)request.ReadTransferType, buffer, 0, context: context);
@@ -104,6 +111,13 @@ namespace Antmicro.Renode.Peripherals.DMA
                     {
                         sysbus.WriteBytes(buffer, destinationAddress, context: context);
                         response.WriteAddress += (ulong)request.Size;
+                    }
+                    //condition for decrement destination address in atcdmac
+                    else if(request.DecrementWriteAddress)
+                    {   
+                        Array.Reverse(buffer);
+                        sysbus.WriteBytes(buffer, destinationAddress);
+                        response.WriteAddress -= (ulong)request.Size;
                     }
                     else
                     {
