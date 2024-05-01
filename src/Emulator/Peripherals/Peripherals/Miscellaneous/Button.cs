@@ -8,6 +8,7 @@
 using System;
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Time;
+using Antmicro.Renode.Logging;
 
 namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
@@ -45,6 +46,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             SetGPIO(!Inverted);
             Pressed = true;
             OnStateChange(true);
+            this.InfoLog("Button press");
         }
 
         public void Release()
@@ -52,6 +54,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             SetGPIO(Inverted);
             Pressed = false;
             OnStateChange(false);
+             this.InfoLog("Button Release");
         }
 
         public void Toggle()

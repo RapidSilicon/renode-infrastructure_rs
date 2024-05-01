@@ -87,11 +87,19 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
 
             base.OnGPIO(number, value);
             this.InfoLog("Setting GPIO number #{0} to value {1}", number, value);
-           
-            bool State =(bool)value;
+             
+            pin = pinstate(value);
+            
         
         }
+             
 
+        public bool pinstate(bool value){
+            if(value)
+            return true;
+            else 
+            return false;
+        }
 
         private void PrepareRegisters()
         {
@@ -118,11 +126,9 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 
                 switch((IOMode)value)
                 {
-                case IOMode.MainMode:
-                
+                case IOMode.MainMode:               
                 this.InfoLog("mode 1"); 
-               // bool State =true;
-                 PadGPIOs.Set(State);
+                 PadGPIOs.Set(pin);
                                    
                 break;
                 case IOMode.Fpga_pinMode:
@@ -140,6 +146,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 }
             }
       //  public IOMode ioMode;
+      public bool pin;
         private const int NumberOfGPIOs = 16;
          //private GPIO[] PadGPIOs { get; }
          

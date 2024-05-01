@@ -49,7 +49,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             {
                 return;
             }
-
+          this.InfoLog("ATCGPIO OnGPIO");
             var oldValue = State[number];
             base.OnGPIO(number, value);
             BitHelper.SetBit(ref dataInReg, (byte)number, value);
