@@ -24,53 +24,18 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
     {
         public Virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
         {
-           // locker = new object();
-           // IRQ = new GPIO();
-            //irqManager = new GPIOInterruptManager(IRQ, State);
             
          RegistersCollection = new DoubleWordRegisterCollection(this);
-          PadGPIOs = new GPIO();
-          PadGPIOsIn = new GPIO();
-          
-         // iomode = new IOMode[NumberOfGPIOs];
-         //PadGPIOs  = new GPIO[NumberOfGPIOs];
-        
-         /*PadGPIOs[0] = GPIO_A_0;
-         PadGPIOs[1] = GPIO_A_1;
-         PadGPIOs[2] = GPIO_A_2;
-         PadGPIOs[3] = GPIO_A_3;
-         PadGPIOs[4] = GPIO_A_4;
-         PadGPIOs[5] = GPIO_A_5;
-         PadGPIOs[6] = GPIO_A_6;
-         PadGPIOs[6] = GPIO_A_7;*/
-        PrepareRegisters();
+         PrepareRegisters();
         }
-       
 
         public override void Reset()
         {
                 base.Reset();
-               // irqManager.Reset();
-               // registers.Reset();
-               // IRQ.Unset();
-           
         }
 
         
         public DoubleWordRegisterCollection RegistersCollection { get; }
-       
-        public GPIO GPIO_A_0 { get; } = new GPIO();
-        public GPIO GPIO_A_1 { get; } = new GPIO();
-        public GPIO GPIO_A_2 { get; } = new GPIO();
-        public GPIO GPIO_A_3 { get; } = new GPIO();
-        public GPIO GPIO_A_4 { get; } = new GPIO();
-        public GPIO GPIO_A_5 { get; } = new GPIO();
-        public GPIO GPIO_A_6 { get; } = new GPIO();
-        public GPIO GPIO_A_7 { get; } = new GPIO();
-        
-        public GPIO PadGPIOs { get; set; }
-        public GPIO PadGPIOsIn { get; set; }
-
         public long Size => 0x1000;
         public uint ReadDoubleWord(long offset)
         {
@@ -94,11 +59,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
              
             pin = pinstate(value);
             
-            // var currentValue = State[number];
-            // this.InfoLog("Current state is {0}", currentValue);
-             // BitHelper.SetBit(ref dataInReg, (byte)number, value);
-             // this.InfoLog(" dataInReg {0}",dataInReg );
-           
+            // var currentValue = State[number];        
            if (number>4){
            OnPinStateChanged(number-4, value);
             
@@ -131,10 +92,8 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 case IOMode.MainMode:               
                 this.InfoLog("mode 1"); 
                 //PadGPIOs.Set(pin);     
-                return 1;
-               // PadGPIOs.Set(interrupt);             
-                case IOMode.Fpga_pinMode:
-               //PadGPIOsIn.Set(pin2);              
+                return 1;            
+                case IOMode.Fpga_pinMode:             
                 this.InfoLog("mode 2");
                 return 2; 
                 case IOMode.AlternativeMode:
@@ -169,9 +128,6 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             ;      
         }
        
-
-       
-      //  public IOMode ioMode;
        public bool pin;
        public bool interrupt;
         public uint result;
