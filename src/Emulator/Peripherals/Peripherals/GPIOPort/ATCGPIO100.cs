@@ -120,7 +120,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             }
         }
 
-        private void DefineRegisters()
+        public void DefineRegisters()
         {
             Registers.IdRev.Define(this)
 
@@ -329,7 +329,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         public GPIO IRQ { get; set; }
         public long Size => 0x84;
 
-        private uint dataInReg = 0x0;
+        public uint dataInReg = 0x0;
         private uint dataOutReg = 0x0;
         private uint channelDirReg = 0x0;
         private uint pullEnReg = 0x0; 

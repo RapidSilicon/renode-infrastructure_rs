@@ -15,19 +15,22 @@ using Antmicro.Renode.Core;
 using Antmicro.Renode.Core.Structure.Registers;
 using Antmicro.Renode.Peripherals.Bus;
 using Antmicro.Renode.Utilities;
+using static Antmicro.Renode.Peripherals.GPIOPort.ATCGPIO100;
 //using Antmicro.Renode.Peripherals.GPIOPort;
 
 namespace Antmicro.Renode.Peripherals.GPIOPort
 {
-    public class Virgo_pad : BaseGPIOPort, IProvidesRegisterCollection<DoubleWordRegisterCollection>, IDoubleWordPeripheral, IKnownSize
+    public class Virgo_pad : BaseGPIOPort, IProvidesRegisterCollection<DoubleWordRegisterCollection>, IDoubleWordPeripheral, IKnownSize,IGPIOReceiver
     {
         public Virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
         {
            // locker = new object();
            // IRQ = new GPIO();
             //irqManager = new GPIOInterruptManager(IRQ, State);
+            
          RegistersCollection = new DoubleWordRegisterCollection(this);
           PadGPIOs = new GPIO();
+          PadGPIOsIn = new GPIO();
           
          // iomode = new IOMode[NumberOfGPIOs];
          //PadGPIOs  = new GPIO[NumberOfGPIOs];
@@ -46,17 +49,16 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
 
         public override void Reset()
         {
-           // lock(locker)
-           // {
                 base.Reset();
                // irqManager.Reset();
                // registers.Reset();
                // IRQ.Unset();
-           // }
+           
         }
 
         
         public DoubleWordRegisterCollection RegistersCollection { get; }
+       
         public GPIO GPIO_A_0 { get; } = new GPIO();
         public GPIO GPIO_A_1 { get; } = new GPIO();
         public GPIO GPIO_A_2 { get; } = new GPIO();
@@ -67,6 +69,8 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         public GPIO GPIO_A_7 { get; } = new GPIO();
         
         public GPIO PadGPIOs { get; set; }
+        public GPIO PadGPIOsIn { get; set; }
+
         public long Size => 0x1000;
         public uint ReadDoubleWord(long offset)
         {
@@ -84,15 +88,33 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             {
                 return;
             }
-
+            
             base.OnGPIO(number, value);
             this.InfoLog("Setting GPIO number #{0} to value {1}", number, value);
              
             pin = pinstate(value);
             
-        
+            // var currentValue = State[number];
+            // this.InfoLog("Current state is {0}", currentValue);
+             // BitHelper.SetBit(ref dataInReg, (byte)number, value);
+             // this.InfoLog(" dataInReg {0}",dataInReg );
+           
+           if (number>4){
+           OnPinStateChanged(number-4, value);
+            
+            }
+           if (number>0 && number <4){
+            OnPinStateChanged(number+4, value);
+
+           }
+          
+            
         }
-             
+
+          private void OnPinStateChanged(int number, bool current)
+        {    
+            Connections[number].Set(pin);
+        }
 
         public bool pinstate(bool value){
             if(value)
@@ -101,6 +123,31 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             return false;
         }
 
+           private uint selection(IOMode value)
+            {
+                
+                switch((IOMode)value)
+                {
+                case IOMode.MainMode:               
+                this.InfoLog("mode 1"); 
+                //PadGPIOs.Set(pin);     
+                return 1;
+               // PadGPIOs.Set(interrupt);             
+                case IOMode.Fpga_pinMode:
+               //PadGPIOsIn.Set(pin2);              
+                this.InfoLog("mode 2");
+                return 2; 
+                case IOMode.AlternativeMode:
+                this.InfoLog("mode 3"); 
+                return 3;
+                case IOMode.DebugMode:
+                this.InfoLog("mode 4"); 
+                return 4;
+                default:
+                    this.InfoLog(" Non existitng possible value written as selection lines.");
+                return 0;
+                }
+            }
         private void PrepareRegisters()
         {
                 Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)
@@ -110,10 +157,12 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,
+                
                 writeCallback: (_, value) =>  {
 
-                    selection((IOMode)value);
+                    result=selection((IOMode)value);
                     },
+                
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23) 
                 
@@ -121,34 +170,14 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         }
        
 
-        private void selection(IOMode value)
-            {
-                
-                switch((IOMode)value)
-                {
-                case IOMode.MainMode:               
-                this.InfoLog("mode 1"); 
-                 PadGPIOs.Set(pin);
-                                   
-                break;
-                case IOMode.Fpga_pinMode:
-                this.InfoLog("mode 2"); 
-                break;
-                case IOMode.AlternativeMode:
-                this.InfoLog("mode 3"); 
-                break;
-                case IOMode.DebugMode:
-                this.InfoLog("mode 4"); 
-                break;
-                default:
-                    this.InfoLog(" Non existitng possible value written as selection lines.");
-                break;
-                }
-            }
+       
       //  public IOMode ioMode;
-      public bool pin;
+       public bool pin;
+       public bool interrupt;
+        public uint result;
+
         private const int NumberOfGPIOs = 16;
-         //private GPIO[] PadGPIOs { get; }
+        private const int Num=5;
          
          public enum IOMode
         {   MainMode = 0, 
