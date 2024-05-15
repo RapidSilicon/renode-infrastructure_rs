@@ -55,22 +55,71 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             }
             
             base.OnGPIO(number, value);
-            this.InfoLog("Setting GPIO number #{0} to value {1}", number, value);
+            this.InfoLog("Setting pad number #{0} to value {1}", number, value);
              
             pin = pinstate(value);
             
-            // var currentValue = State[number];        
-           if (number>4){
-           OnPinStateChanged(number-4, value);
+            // var currentValue = State[number];  
+
+            if (MUX_1==1 && EN_1){  
+            if (number==16 )
+            OnPinStateChanged(number-16, value);
+            if (number==0 )
+            OnPinStateChanged(number+16, value);
+            
+             }
+
+            if (MUX_2==1 && EN_2){  
+            if (number==17 )
+            OnPinStateChanged(number-16, value);
+            if (number==1 )
+            OnPinStateChanged(number+16, value);
+             }
+             
+            if (MUX_10==1 && EN_10){  
+            if (number==26 )
+            OnPinStateChanged(number-16, value);
+            if (number==10 )
+            OnPinStateChanged(number+16, value);
+            
+             }
+             
+            
+
+            if (MUX_11==1 && EN_11){  
+            if (number==27 )
+            OnPinStateChanged(number-16, value);
+            if (number==11 )
+            OnPinStateChanged(number+16, value);
+            
+             }
+
+            if (MUX_12==1 && EN_12){  
+            if (number==28 )
+            OnPinStateChanged(number-16, value);
+            if (number==12 )
+            OnPinStateChanged(number+16, value);
+            
+             }
+               
+           /*if (number==16 || number==17 ){
+           OnPinStateChanged(number-16, value);
             
             }
-           if (number>0 && number <4){
-            OnPinStateChanged(number+4, value);
-
-           }
-          
             
-        }
+            if (number>=26 && number <=31 ){
+           OnPinStateChanged(number-24, value);
+            
+            }
+
+           if (number==0 || number==1){
+            OnPinStateChanged(number+16, value);
+           }
+           if (number>=2 && number<=7){
+            OnPinStateChanged(number+24, value);
+           }*/
+           
+        } 
 
           private void OnPinStateChanged(int number, bool current)
         {    
@@ -110,30 +159,90 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         private void PrepareRegisters()
         {
                 Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)
-                .WithTaggedFlag("EN", 0)
+                .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN_1=value)
                 .WithTag("DS", 1, 2)
                 .WithReservedBits(3, 2)
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
-                .WithEnumField<DoubleWordRegister, IOMode>(7, 2,
-                
+                .WithEnumField<DoubleWordRegister, IOMode>(7, 2,               
                 writeCallback: (_, value) =>  {
 
-                    result=selection((IOMode)value);
+                    MUX_1=selection((IOMode)value);
+                    },  
+                name: "FUNCMAX")
+                .WithReservedBits(9, 23) 
+
+                ;
+
+                Registers.std_pu_PAD_GPIO_A_1_ctl.Define(this)
+                .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN_2=value)
+                .WithTag("DS", 1, 2)
+                .WithReservedBits(3, 2)
+                .WithTaggedFlag("PUE", 5)
+                .WithTaggedFlag("PUD", 6)
+                .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
+                writeCallback: (_, value) =>  {
+                    MUX_2=selection((IOMode)value);
+                    },
+                name: "FUNCMAX")
+                .WithReservedBits(9, 23) 
+                
+            ;  
+             Registers.std_pu_PAD_GPIO_A_10_ctl.Define(this)
+                .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN_10=value)
+                .WithTag("DS", 1, 2)
+                .WithReservedBits(3, 2)
+                .WithTaggedFlag("PUE", 5)
+                .WithTaggedFlag("PUD", 6)
+                .WithEnumField<DoubleWordRegister, IOMode>(7, 2, 
+                writeCallback: (_, value) =>  {
+                    MUX_10=selection((IOMode)value);
                     },
                 
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23) 
                 
-            ;      
+            ;  
+            Registers.std_pu_PAD_GPIO_A_11_ctl.Define(this)
+                .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN_11=value)
+                .WithTag("DS", 1, 2)
+                .WithReservedBits(3, 2)
+                .WithTaggedFlag("PUE", 5)
+                .WithTaggedFlag("PUD", 6)
+                .WithEnumField<DoubleWordRegister, IOMode>(7, 2,  
+                writeCallback: (_, value) =>  {
+                    MUX_11=selection((IOMode)value);
+                    },
+                name: "FUNCMAX")
+                .WithReservedBits(9, 23) 
+                
+            ;  
+
+            Registers.std_pu_PAD_GPIO_A_12_ctl.Define(this)
+                .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN_12=value)
+                .WithTag("DS", 1, 2)
+                .WithReservedBits(3, 2)
+                .WithTaggedFlag("PUE", 5)
+                .WithTaggedFlag("PUD", 6)
+                .WithEnumField<DoubleWordRegister, IOMode>(7, 2,  
+                writeCallback: (_, value) =>  {
+                MUX_12=selection((IOMode)value);
+                    },
+                
+                name: "FUNCMAX")
+                .WithReservedBits(9, 23) 
+                
+            ;  
+
         }
        
        public bool pin;
-       public bool interrupt;
-        public uint result;
+      
+        private uint MUX_1,MUX_2, MUX_3, MUX_4, MUX_5, MUX_6, MUX_7 , MUX_8 , MUX_9 ,MUX_10,MUX_11, MUX_12;
+        private bool EN_1,EN_2,EN_3,EN_4,EN_5,EN_6,EN_7,EN_8,EN_9,EN_10,EN_11,EN_12;
 
-        private const int NumberOfGPIOs = 16;
-        private const int Num=5;
+        private const int NumberOfGPIOs = 48;
+        
          
          public enum IOMode
         {   MainMode = 0, 

@@ -49,11 +49,11 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             {
                 return;
             }
-          this.InfoLog("ATCGPIO OnGPIO");
+          
             var oldValue = State[number];
-            base.OnGPIO(number, value);
+            base.OnGPIO(number, value); 
             BitHelper.SetBit(ref dataInReg, (byte)number, value);
-
+            this.InfoLog("Setting GPIO number #{0} to value {1}", number, value);
 
             // check for interrupt events
             if (BitHelper.IsBitSet(interruptEnReg, (byte)number))
