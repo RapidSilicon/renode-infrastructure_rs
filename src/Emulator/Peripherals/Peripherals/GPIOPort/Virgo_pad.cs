@@ -43,7 +43,12 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         }
 
         public void WriteDoubleWord(long offset, uint value)
-        {
+        {  
+            if(padKey.Value != PadKeyUnlockValue)
+                {
+                    this.Log(LogLevel.Warning, "Tried to change pin configuration register which is locked. PADKEY value: {0:X}", padKey.Value);
+                    return;
+                }
             RegistersCollection.Write(offset, value);
         }
         
@@ -66,10 +71,16 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 	switch(MUX_0) {
                   	case 1: 
                     	OnPinStateChanged(number+16, value);
-                      break;
+                        break;
                     case 2:
                     	OnPinStateChanged(number+32, value);
-                      break;
+                        break;
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
                     default:
                     	break;
                   }
@@ -79,34 +90,294 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 case 1:
                 	if(EN_1) {
                   	switch(MUX_1) {
-                    	case 1:
-                      	OnPinStateChanged(number+16, value);
+                    case 1:
+                        OnPinStateChanged(number+16, value);
                         break;
-                      case 2:
+                    case 2:
                       	OnPinStateChanged(number+32, value);
                         break;
-                      default:
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
+                    default:
                       	break;
                     }
                   }
-                  break;
+                break;
 
-                 case 2:
+                case 2:
                 	if(EN_2) {
                   	switch(MUX_2) {
-                    	case 1:
-                      	Console.WriteLine("UART TX ");
+                    case 1:
                         break;
-                      case 2:
+                    case 2:
                       	OnPinStateChanged(number+32, value);
                         break;
-                      default:
+                    case 3:
+                        break;
+                    case 4:
+                        break;
+                    default:
                       	break;
                     }
                   }
-                  break; 
+                break; 
 
+                case 3:
+                	if(EN_3) {
+                  	switch(MUX_3) {
+                    case 1:
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        break;
+                    case 4:
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 4:
+                	if(EN_4) {
+                  	switch(MUX_4) {
+                    case 1:
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 5:
+                	if(EN_5) {
+                  	switch(MUX_5) {
+                    case 1:
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 6:
+                	if(EN_6) {
+                  	switch(MUX_6) {
+                    case 1:
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 7:
+                	if(EN_7) {
+                  	switch(MUX_7) {
+                    case 1:
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+            
+                case 8:
+                	if(EN_8) {
+                  	switch(MUX_8) {
+                    case 1:
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
                 
+                case 9:
+                	if(EN_9) {
+                  	switch(MUX_10) {
+                    case 1:
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32 , value);
+                        break;
+                    case 3:
+                        break;
+                    case 4:
+                        OnPinStateChanged(number+64, value);
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 10:
+                	if(EN_10) {
+                  	switch(MUX_10) {
+                    case 1:
+                        OnPinStateChanged(number+16, value);
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 11:
+                	if(EN_11) {
+                  	switch(MUX_11) {
+                    case 1:
+                        OnPinStateChanged(number+16, value);
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 12:
+                	if(EN_12) {
+                  	switch(MUX_12) {
+                    case 1:
+                        OnPinStateChanged(number+16, value);
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+                
+                case 13:
+                	if(EN_13) {
+                  	switch(MUX_13) {
+                    case 1:
+                        OnPinStateChanged(number+16, value);
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 14:
+                	if(EN_14) {
+                  	switch(MUX_14) {
+                    case 1:
+                        OnPinStateChanged(number+16, value);
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
+                case 15:
+                	if(EN_15) {
+                  	switch(MUX_15) {
+                    case 1:
+                        OnPinStateChanged(number+16, value);
+                        break;
+                    case 2:
+                      	OnPinStateChanged(number+32, value);
+                        break;
+                    case 3:
+                        OnPinStateChanged(number+48, value);
+                        break;
+                    case 4:
+                        break;
+                    default:
+                      	break;
+                    }
+                  }
+                break;
+
                 case 16:
                 	if(EN_0 && (MUX_0 == 1)) {
                   	OnPinStateChanged(number-16, value);
@@ -118,7 +389,43 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                   	OnPinStateChanged(number-16, value);
                   }
                   break;
+
+                case 26:
+                	if(EN_10 && (MUX_10 == 1)) {
+                  	OnPinStateChanged(number-16, value);
+                  }
+                  break;
+
+                case 27:
+                	if(EN_11 && (MUX_11 == 1)) {
+                  	OnPinStateChanged(number-16, value);
+                  }
+                  break;
                 
+                case 28:
+                	if(EN_12 && (MUX_12 == 1)) {
+                  	OnPinStateChanged(number-16, value);
+                  }
+                  break;
+
+                case 29:
+                	if(EN_13 && (MUX_13 == 1)) {
+                  	OnPinStateChanged(number-16, value);
+                  }
+                  break;
+                
+                case 30:
+                	if(EN_14 && (MUX_14 == 1)) {
+                  	OnPinStateChanged(number-16, value);
+                  }
+                  break;
+                
+                case 31:
+                	if(EN_15 && (MUX_15 == 1)) {
+                  	OnPinStateChanged(number-16, value);
+                  }
+                  break;
+
                 case 32:
                 	if(EN_0 && (MUX_0 == 2)) {
                   	OnPinStateChanged(number-32, value);
@@ -131,12 +438,186 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                   }
                   break;
 
-                 case 34:
+                case 34:
                 	if(EN_2 && (MUX_2 == 2)) {
                   	OnPinStateChanged(number-32, value);
                   }
                   break;
+                
+                case 35:
+                	if(EN_3 && (MUX_3 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+                
+                case 36:
+                	if(EN_4 && (MUX_4 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+
+                case 37:
+                	if(EN_5 && (MUX_5 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
             
+                case 38:
+                	if(EN_6 && (MUX_6 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+                
+                case 39:
+                	if(EN_7 && (MUX_7 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+                
+                case 40:
+                	if(EN_8 && (MUX_8 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+                
+                case 41:
+                	if(EN_9 && (MUX_9 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+                
+                case 42:
+                	if(EN_10 && (MUX_10 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+
+                case 43:
+                	if(EN_11 && (MUX_11 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+
+                case 44:
+                	if(EN_12 && (MUX_12 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+
+                case 45:
+                	if(EN_13 && (MUX_13 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+
+                case 46:
+                	if(EN_14 && (MUX_14 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+
+                case 47:
+                	if(EN_15 && (MUX_15 == 2)) {
+                  	OnPinStateChanged(number-32, value);
+                  }
+                  break;
+                
+                case 48:
+                	if(EN_0 && (MUX_0 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+
+                case 49:
+                	if(EN_1 && (MUX_1 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+                
+                case 58:
+                	if(EN_10 && (MUX_10 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+                
+                case 59:
+                	if(EN_11 && (MUX_11 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+                
+                case 60:
+                	if(EN_12 && (MUX_12 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+
+                case 61:
+                	if(EN_13 && (MUX_13 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+
+                case 62:
+                	if(EN_14 && (MUX_14 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+
+                case 63:
+                	if(EN_15 && (MUX_15 == 3)) {
+                  	OnPinStateChanged(number-48, value);
+                  }
+                  break;
+
+                case 64:
+                	if(EN_0 && (MUX_0 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+                
+                case 65:
+                	if(EN_1 && (MUX_1 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+                 
+                case 68:
+                	if(EN_4 && (MUX_4 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+
+                case 69:
+                	if(EN_5 && (MUX_5 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+                
+                case 70:
+                	if(EN_6 && (MUX_6 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+
+                case 71:
+                	if(EN_7 && (MUX_7 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+                
+                case 72:
+                	if(EN_8 && (MUX_8 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+
+                case 73:
+                	if(EN_9 && (MUX_9 == 4)) {
+                  	OnPinStateChanged(number-64, value);
+                  }
+                  break;
+
             }
                       
         } 
@@ -159,8 +640,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 switch((IOMode)value)
                 {
                 case IOMode.MainMode:               
-                this.InfoLog("mode 1"); 
-                //PadGPIOs.Set(pin);     
+                this.InfoLog("mode 1");    
                 return 1;            
                 case IOMode.Fpga_pinMode:             
                 this.InfoLog("mode 2");
@@ -178,6 +658,11 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             }
         private void PrepareRegisters()
         {
+                Registers.pad_csr.Define(this)
+                .WithTaggedFlag("STATUS",0)
+                .WithValueField(1, 31, out padKey, name: "PADKEY")
+                ; 
+                
                 Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)
                 .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN_0=value)
                 .WithTag("DS", 1, 2)
@@ -412,29 +897,23 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
 
         }
        
-       public bool pin;
-      
+        public bool pin;
         private uint MUX_0,MUX_1,MUX_2, MUX_3, MUX_4, MUX_5, MUX_6, MUX_7 , MUX_8 , MUX_9 ,MUX_10,MUX_11, MUX_12,MUX_13,MUX_14,MUX_15;
         private bool EN_0,EN_1,EN_2,EN_3,EN_4,EN_5,EN_6,EN_7,EN_8,EN_9,EN_10,EN_11,EN_12,EN_13,EN_14,EN_15;
+        private const int NumberOfGPIOs = 80;
+        private IValueRegisterField padKey;
+        private const uint PadKeyUnlockValue = 0x2A6;
 
-        private const int NumberOfGPIOs = 48;
-        
-         
          public enum IOMode
         {   MainMode = 0, 
             Fpga_pinMode = 1, 
             AlternativeMode = 2, 
             DebugMode = 3
-            
-            /*MainMode = 0b00, 
-            Fpga_pinMode = 0b01, 
-            AlternativeMode = 0b10, 
-            DebugMode = 0b11*/
         }
  
         private enum Registers
         {
-          //  pad_csr = 0x1000,
+            pad_csr = 0x1000,
             std_pu_PAD_GPIO_A_0_ctl = 0x1004,
             std_pu_PAD_GPIO_A_1_ctl = 0x1008,
             std_pu_PAD_GPIO_A_2_ctl = 0x100C,
