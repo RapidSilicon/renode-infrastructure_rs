@@ -15,10 +15,9 @@ using Antmicro.Renode.Core;
 using Antmicro.Renode.Core.Structure.Registers;
 using Antmicro.Renode.Peripherals.Bus;
 using Antmicro.Renode.Utilities;
-using static Antmicro.Renode.Peripherals.GPIOPort.ATCGPIO100;
-//using Antmicro.Renode.Peripherals.GPIOPort;
+using Antmicro.Renode.Peripherals.GPIOPort;
 
-namespace Antmicro.Renode.Peripherals.GPIOPort
+namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
     public class Virgo_pad : BaseGPIOPort, IProvidesRegisterCollection<DoubleWordRegisterCollection>, IDoubleWordPeripheral, IKnownSize,IGPIOReceiver
     {
@@ -621,16 +620,16 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                 switch((IOMode)value)
                 {
                 case IOMode.MainMode:               
-                this.InfoLog("mode 1");    
+                this.InfoLog("Select {0}", value);    
                 return 1;            
                 case IOMode.Fpga_pinMode:             
-                this.InfoLog("mode 2");
+                this.InfoLog("Select {0}",value);
                 return 2; 
                 case IOMode.AlternativeMode:
-                this.InfoLog("mode 3"); 
+                this.InfoLog("Select {0}",value); 
                 return 3;
                 case IOMode.DebugMode:
-                this.InfoLog("mode 4"); 
+                this.InfoLog("Select {0}",value); 
                 return 4;
                 default:
                     this.InfoLog(" Non existitng possible value written as selection lines.");
@@ -657,9 +656,8 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                    }
                   
                   }
-                   this.InfoLog(" register unlock{0}", registerunlocked);
-                }
-                  )
+                   this.InfoLog(" Pad key set to {0}", registerunlocked);
+                })
                   .WithTaggedFlag("STATUS",31)
             ;     
             Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)      
