@@ -58,16 +58,16 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
               	if(EN_S[0]) {
                 	switch(MUX_S[0]) {
                   	case 1: 
-                    	OnPinStateChanged(number+16, value);
+                    	OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                    	OnPinStateChanged(number+32, value);
+                    	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                     	break;
@@ -79,16 +79,16 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 	if(EN_S[1]) {
                   	switch(MUX_S[1]) {
                     case 1:
-                        OnPinStateChanged(number+16, value);
+                        OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                       	break;
@@ -102,7 +102,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
                         break;
@@ -120,7 +120,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
                         break;
@@ -138,12 +138,12 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                       	break;
@@ -157,12 +157,12 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                       	break;
@@ -176,12 +176,12 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                       	break;
@@ -195,12 +195,12 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                       	break;
@@ -214,12 +214,12 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                       	break;
@@ -233,12 +233,12 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     case 1:
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32 , value);
+                      	OnPinStateChanged(number+FPGAPinsIndex , value);
                         break;
                     case 3:
                         break;
                     case 4:
-                        OnPinStateChanged(number+64, value);
+                        OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
                       	break;
@@ -250,13 +250,13 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 	if(EN_S[10]) {
                   	switch(MUX_S[10]) {
                     case 1:
-                        OnPinStateChanged(number+16, value);
+                        OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
                         break;
@@ -270,13 +270,13 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 	if(EN_S[11]) {
                   	switch(MUX_S[11]) {
                     case 1:
-                        OnPinStateChanged(number+16, value);
+                        OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
                         break;
@@ -290,13 +290,13 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 	if(EN_S[12]) {
                   	switch(MUX_S[12]) {
                     case 1:
-                        OnPinStateChanged(number+16, value);
+                        OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
                         break;
@@ -310,13 +310,13 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 	if(EN_S[13]) {
                   	switch(MUX_S[13]) {
                     case 1:
-                        OnPinStateChanged(number+16, value);
+                        OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
                         break;
@@ -330,13 +330,13 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 	if(EN_S[14]) {
                   	switch(MUX_S[14]) {
                     case 1:
-                        OnPinStateChanged(number+16, value);
+                        OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
                         break;
@@ -350,13 +350,13 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 	if(EN_S[15]) {
                   	switch(MUX_S[15]) {
                     case 1:
-                        OnPinStateChanged(number+16, value);
+                        OnPinStateChanged(number+GPIOPinsIndex, value);
                         break;
                     case 2:
-                      	OnPinStateChanged(number+32, value);
+                      	OnPinStateChanged(number+FPGAPinsIndex, value);
                         break;
                     case 3:
-                        OnPinStateChanged(number+48, value);
+                        OnPinStateChanged(number+AltPinsIndex, value);
                         break;
                     case 4:
                         break;
@@ -368,241 +368,241 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
 
                 case 16:
                 	if(EN_S[0] && (MUX_S[0] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
                 
                 case 17:
                 	if(EN_S[1] && (MUX_S[1] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
 
                 case 26:
                 	if(EN_S[10] && (MUX_S[10] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
 
                 case 27:
                 	if(EN_S[11] && (MUX_S[11] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
                 
                 case 28:
                 	if(EN_S[12] && (MUX_S[12] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
 
                 case 29:
                 	if(EN_S[13] && (MUX_S[13] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
                 
                 case 30:
                 	if(EN_S[14] && (MUX_S[14] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
                 
                 case 31:
                 	if(EN_S[15] && (MUX_S[15] == 1)) {
-                  	OnPinStateChanged(number-16, value);
+                  	OnPinStateChanged(number-GPIOPinsIndex, value);
                   }
                   break;
 
                 case 32:
                 	if(EN_S[0] && (MUX_S[0] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 33:
                 	if(EN_S[1] && (MUX_S[1] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
 
                 case 34:
                 	if(EN_S[2] && (MUX_S[2] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 35:
                 	if(EN_S[3] && (MUX_S[3] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 36:
                 	if(EN_S[4] && (MUX_S[4] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
 
                 case 37:
                 	if(EN_S[5] && (MUX_S[5] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
             
                 case 38:
                 	if(EN_S[6] && (MUX_S[6] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 39:
                 	if(EN_S[7] && (MUX_S[7] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 40:
                 	if(EN_S[8] && (MUX_S[8] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 41:
                 	if(EN_S[9] && (MUX_S[9] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 42:
                 	if(EN_S[10] && (MUX_S[10] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
 
                 case 43:
                 	if(EN_S[11] && (MUX_S[11] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
 
                 case 44:
                 	if(EN_S[12] && (MUX_S[12] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
 
                 case 45:
                 	if(EN_S[13] && (MUX_S[13] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
 
                 case 46:
                 	if(EN_S[14] && (MUX_S[14] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
 
                 case 47:
                 	if(EN_S[15] && (MUX_S[15] == 2)) {
-                  	OnPinStateChanged(number-32, value);
+                  	OnPinStateChanged(number-FPGAPinsIndex, value);
                   }
                   break;
                 
                 case 48:
                 	if(EN_S[0] && (MUX_S[0] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
 
                 case 49:
                 	if(EN_S[1] && (MUX_S[1] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
                 
                 case 58:
                 	if(EN_S[10] && (MUX_S[10] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
                 
                 case 59:
                 	if(EN_S[11] && (MUX_S[11] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
                 
                 case 60:
                 	if(EN_S[12] && (MUX_S[12] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
 
                 case 61:
                 	if(EN_S[13] && (MUX_S[13] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
 
                 case 62:
                 	if(EN_S[14] && (MUX_S[14] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
 
                 case 63:
                 	if(EN_S[15] && (MUX_S[15] == 3)) {
-                  	OnPinStateChanged(number-48, value);
+                  	OnPinStateChanged(number-AltPinsIndex, value);
                   }
                   break;
 
                 case 64:
                 	if(EN_S[0] && (MUX_S[0] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
                 
                 case 65:
                 	if(EN_S[0] && (MUX_S[1] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
                  
                 case 68:
                 	if(EN_S[4] && (MUX_S[4] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
 
                 case 69:
                 	if(EN_S[5] && (MUX_S[5] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
                 
                 case 70:
                 	if(EN_S[6] && (MUX_S[6] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
 
                 case 71:
                 	if(EN_S[7] && (MUX_S[7] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
                 
                 case 72:
                 	if(EN_S[8] && (MUX_S[8] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
 
                 case 73:
                 	if(EN_S[9] && (MUX_S[9] == 4)) {
-                  	OnPinStateChanged(number-64, value);
+                  	OnPinStateChanged(number-DebugPinsIndex, value);
                   }
                   break;
 
@@ -636,29 +636,33 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 return 0;
                 }
             }
+          
+          private void UpdateStatus(Registers reg , int i)
+          {
+            if (EN[i] != EN_S[i] || MUX[i] != MUX_S[i]) 
+                  status = false;       
+              
+          }
         private void PrepareRegisters()
         {          
             Registers.pad_csr.Define(this)
-               // .WithTaggedFlag("STATUS",0)
-                .WithValueField(0, 31,FieldMode.Read|FieldMode.Write , name: "PADKEY",writeCallback: ( _, value) => {
+              .WithFlag(0, FieldMode.Read , name: "STATUS",
+                    valueProviderCallback: _ => status)
+                .WithValueField(1, 31,FieldMode.Write , name: "PADKEY",writeCallback: ( _, value) => {
                   if (value==PadKeyUnlockValue) {
                   registerunlocked=true;
                    {  
                        for (var i=0; i<=15; i++ )
                        {
-                           EN_S[i]=EN[i];
+                          EN_S[i]=EN[i];
+                          MUX_S[i]=MUX[i];
                        }
-                        for (var i=0; i<=15; i++ )
-                       {
-                           MUX_S[i]=MUX[i];
-                       }
-                   
-                   }
-                  
-                  }
-                   this.InfoLog(" Pad key set to {0}", registerunlocked);
+                        
+                       status = true;
+                   }}
+                   this.InfoLog(" Pad key set to {0}, {1}", registerunlocked, value);
                 })
-                  .WithTaggedFlag("STATUS",31)
+               
             ;     
             Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)      
                 .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN[0]=value)
@@ -668,8 +672,9 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,               
                 writeCallback: (_, value) =>  {
-                    MUX[0]=selection((IOMode)value);     
-                    },  
+                    MUX[0]=selection((IOMode)value);   
+                    UpdateStatus( Registers.std_pu_PAD_GPIO_A_0_ctl, 0); 
+                    }, 
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;    
@@ -682,6 +687,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[1]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_1_ctl,1);  
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -695,6 +701,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[2]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_2_ctl,2); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)     
@@ -708,6 +715,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[3]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_3_ctl,3);  
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -721,6 +729,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[4]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_4_ctl,4); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)       
@@ -734,6 +743,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[5]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_5_ctl,5);  
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)   
@@ -747,6 +757,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[6]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_6_ctl,6); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)     
@@ -760,6 +771,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[7]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_7_ctl,7);  
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -773,6 +785,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[8]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_8_ctl,8); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -786,6 +799,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[9]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_9_ctl,9); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -799,6 +813,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2, 
                 writeCallback: (_, value) =>  {
                     MUX[10]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_10_ctl,10); 
                     }, 
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -812,6 +827,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,  
                 writeCallback: (_, value) =>  {
                     MUX[11]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_11_ctl,11); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -824,7 +840,8 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,  
                 writeCallback: (_, value) =>  {
-                MUX[12]=selection((IOMode)value);
+                  MUX[12]=selection((IOMode)value);
+                  UpdateStatus(Registers.std_pu_PAD_GPIO_A_12_ctl,12); 
                     },
                 
                 name: "FUNCMAX")
@@ -839,6 +856,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[13]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_13_ctl,13); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -852,6 +870,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[14]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_14_ctl,14); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)     
@@ -865,6 +884,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
                 writeCallback: (_, value) =>  {
                     MUX[15]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_15_ctl,15); 
                     },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
@@ -872,14 +892,17 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         }
         
         private const int NumberOfGPIOs = 80;
-        public const uint PadKeyUnlockValue = 0x2A6;
+        public const uint PadKeyUnlockValue = 0x2A6>>1;
         public bool registerunlocked=false;
-
+        private bool status = false; 
         private uint[] MUX=new uint[16];
         private bool[] EN = new bool[16];
         private uint[] MUX_S=new uint[16];
         private bool[] EN_S = new bool[16];
-
+        private const int GPIOPinsIndex = 16;
+        private const int FPGAPinsIndex = 32;
+        private const int AltPinsIndex = 48;
+        private const int DebugPinsIndex = 64;
         public enum IOMode
         {   MainMode = 0, 
             Fpga_pinMode = 1, 
