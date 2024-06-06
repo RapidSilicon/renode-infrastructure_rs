@@ -734,7 +734,7 @@ namespace Antmicro.Renode.Core
         }
 
         public void HandleTimeDomainEvent<T>(Action<T> handler, T handlerArgument, TimeStamp eventTime, Action postAction = null)
-        {
+        { 
             switch(EmulationManager.Instance.CurrentEmulation.Mode)
             {
                 case Emulation.EmulationMode.SynchronizedIO:

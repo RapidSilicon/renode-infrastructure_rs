@@ -15,38 +15,32 @@ using Antmicro.Renode.Core;
 using Antmicro.Renode.Core.Structure.Registers;
 using Antmicro.Renode.Peripherals.Bus;
 using Antmicro.Renode.Utilities;
-using static Antmicro.Renode.Peripherals.GPIOPort.ATCGPIO100;
-//using Antmicro.Renode.Peripherals.GPIOPort;
+using Antmicro.Renode.Peripherals.GPIOPort;
 
-namespace Antmicro.Renode.Peripherals.GPIOPort
+namespace Antmicro.Renode.Peripherals.Miscellaneous
 {
     public class Virgo_pad : BaseGPIOPort, IProvidesRegisterCollection<DoubleWordRegisterCollection>, IDoubleWordPeripheral, IKnownSize,IGPIOReceiver
     {
         public Virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
-        {
-            
+        {      
          RegistersCollection = new DoubleWordRegisterCollection(this);
          PrepareRegisters();
-         //InternalRegisters();
         }
 
         public override void Reset()
         {
                 base.Reset();
         }
-
-        
+      
         public DoubleWordRegisterCollection RegistersCollection { get; }
         public long Size => 0x1000;
         public uint ReadDoubleWord(long offset)
         {
             return RegistersCollection.Read(offset);
         }
-         
-        
+                
         public void WriteDoubleWord(long offset, uint value)
         {  
-          
          RegistersCollection.Write(offset, value);
         }
         
@@ -60,7 +54,7 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
             base.OnGPIO(number, value);
             this.InfoLog("Setting pad number #{0} to value {1}", number, value);
              
-            pin = pinstate(value);
+           // pin = pinstate(value);
             
             // var currentValue = State[number];  
            switch(number) {
@@ -622,7 +616,8 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
 
           private void OnPinStateChanged(int number, bool current)
         {    
-            Connections[number].Set(pin);
+            Connections[number].Set(current);
+           // Connections[number].Set(pin);
         }
 
         public bool pinstate(bool value){
@@ -658,7 +653,9 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
         {          
                 Registers.pad_csr.Define(this)
                // .WithTaggedFlag("STATUS",0)
-                .WithValueField(0, 31,FieldMode.Read|FieldMode.Write , name: "PADKEY",writeCallback: ( _, value) => {
+                .WithFlag(0, FieldMode.Read , name: "STATUS",
+                    valueProviderCallback: _ => status)
+                .WithValueField(1, 31,FieldMode.Read|FieldMode.Write , name: "PADKEY",writeCallback: ( _, value) => {
                   if (value==PadKeyUnlockValue) {
                   registerunlocked=true;
                    {  
@@ -670,14 +667,19 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
                        {
                            MUX_S[i]=MUX[i];
                        }
-                   
+                      status =true;
                    }
-                  
+
+                 
+                  }
+                   else 
+                  {
+                    status=false;
                   }
                    this.InfoLog(" register unlock{0}", registerunlocked);
                 }
                   )
-                  .WithTaggedFlag("STATUS",31)
+                //  .WithTaggedFlag("STATUS",0)
                 ; 
                 
                Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)
@@ -923,9 +925,9 @@ namespace Antmicro.Renode.Peripherals.GPIOPort
 
         private const int NumberOfGPIOs = 80;
         private uint padKey;
-        public const uint PadKeyUnlockValue = 0x2A6;
+        public const uint PadKeyUnlockValue = 0x2A6>>1;
         public bool registerunlocked=false;
-
+        private bool status = false; 
         private uint[] MUX=new uint[16];
         private bool[] EN = new bool[16];
         private uint[] MUX_S=new uint[16];
