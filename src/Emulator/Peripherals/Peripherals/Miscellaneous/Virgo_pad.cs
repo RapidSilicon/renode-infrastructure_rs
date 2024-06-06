@@ -640,8 +640,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
           private void UpdateStatus(Registers reg , int i)
           {
             if (EN[i] != EN_S[i] || MUX[i] != MUX_S[i]) 
-                  status = false;       
-              
+                  status = false;        
           }
         private void PrepareRegisters()
         {          
@@ -649,20 +648,15 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
               .WithFlag(0, FieldMode.Read , name: "STATUS",
                     valueProviderCallback: _ => status)
                 .WithValueField(1, 31,FieldMode.Write , name: "PADKEY",writeCallback: ( _, value) => {
-                  if (value==PadKeyUnlockValue) {
-                  registerunlocked=true;
+                  if (value==PadKeyUnlockValue) 
                    {  
-                       for (var i=0; i<=15; i++ )
+                    for (var i=0; i<=NumberofPadOutput; i++ )
                        {
                           EN_S[i]=EN[i];
                           MUX_S[i]=MUX[i];
-                       }
-                        
+                       }   
                        status = true;
-                   }}
-                   this.InfoLog(" Pad key set to {0}, {1}", registerunlocked, value);
-                })
-               
+                   }})  
             ;     
             Registers.std_pu_PAD_GPIO_A_0_ctl.Define(this)      
                 .WithFlag(0, FieldMode.Read|FieldMode.Write,name: "EN", writeCallback: ( _, value) => EN[0]=value)
@@ -892,8 +886,8 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         }
         
         private const int NumberOfGPIOs = 80;
+        private const int NumberofPadOutput = 15;
         public const uint PadKeyUnlockValue = 0x2A6>>1;
-        public bool registerunlocked=false;
         private bool status = false; 
         private uint[] MUX=new uint[16];
         private bool[] EN = new bool[16];
@@ -904,7 +898,8 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         private const int AltPinsIndex = 48;
         private const int DebugPinsIndex = 64;
         public enum IOMode
-        {   MainMode = 0, 
+        {   
+            MainMode = 0, 
             Fpga_pinMode = 1, 
             AlternativeMode = 2, 
             DebugMode = 3
