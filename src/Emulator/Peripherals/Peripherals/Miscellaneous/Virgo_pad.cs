@@ -634,7 +634,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
           private void UpdateStatus(Registers reg , int i)
           {
             if (EN[i] != EN_S[i] || MUX[i] != MUX_S[i]) 
-                  status = false;        
+                status = false;        
           }
         private void PrepareRegisters()
         {          
