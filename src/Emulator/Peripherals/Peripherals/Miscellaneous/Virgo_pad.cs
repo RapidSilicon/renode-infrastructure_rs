@@ -1,9 +1,3 @@
-//
-// Copyright (c) 2010-2023 Antmicro
-//
-//  This file is licensed under the MIT License.
-//  Full license text is available in 'licenses/MIT.txt'.
-//
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -23,37 +17,37 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
     {
         public Virgo_pad(IMachine machine) : base(machine, NumberOfGPIOs)
         {    
-         RegistersCollection = new DoubleWordRegisterCollection(this);
-         PrepareRegisters();
+            RegistersCollection = new DoubleWordRegisterCollection(this);
+            PrepareRegisters();
         }
 
         public override void Reset()
         {
-          base.Reset();
+            base.Reset();
         }
   
         public DoubleWordRegisterCollection RegistersCollection { get; }
         public long Size => 0x1000;
         public uint ReadDoubleWord(long offset)
         {
-          return RegistersCollection.Read(offset);
+            return RegistersCollection.Read(offset);
         }
               
         public void WriteDoubleWord(long offset, uint value)
         {    
-         RegistersCollection.Write(offset, value);
+            RegistersCollection.Write(offset, value);
         }
         
         public override void OnGPIO(int number, bool value)
         {
             if(!CheckPinNumber(number))
             {
-              return;
+                return;
             }
             
             base.OnGPIO(number, value);
             this.InfoLog("Setting pad number #{0} to value {1}", number, value);  
-           switch(number) {
+            switch(number) {
             	case 0:
               	if(EN_S[0]) {
                 	switch(MUX_S[0]) {
@@ -184,7 +178,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                         OnPinStateChanged(number+DebugPinsIndex, value);
                         break;
                     default:
-                      	break;
+                        break;
                     }
                   }
                 break;
@@ -369,278 +363,278 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 case 16:
                 	if(EN_S[0] && (MUX_S[0] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 17:
                 	if(EN_S[1] && (MUX_S[1] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 26:
                 	if(EN_S[10] && (MUX_S[10] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 27:
                 	if(EN_S[11] && (MUX_S[11] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 28:
                 	if(EN_S[12] && (MUX_S[12] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 29:
                 	if(EN_S[13] && (MUX_S[13] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 30:
                 	if(EN_S[14] && (MUX_S[14] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 31:
                 	if(EN_S[15] && (MUX_S[15] == 1)) {
                   	OnPinStateChanged(number-GPIOPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 32:
                 	if(EN_S[0] && (MUX_S[0] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 33:
                 	if(EN_S[1] && (MUX_S[1] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 34:
                 	if(EN_S[2] && (MUX_S[2] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 35:
                 	if(EN_S[3] && (MUX_S[3] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 36:
                 	if(EN_S[4] && (MUX_S[4] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 37:
                 	if(EN_S[5] && (MUX_S[5] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
             
                 case 38:
                 	if(EN_S[6] && (MUX_S[6] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 39:
                 	if(EN_S[7] && (MUX_S[7] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 40:
                 	if(EN_S[8] && (MUX_S[8] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 41:
                 	if(EN_S[9] && (MUX_S[9] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 42:
                 	if(EN_S[10] && (MUX_S[10] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 43:
                 	if(EN_S[11] && (MUX_S[11] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 44:
                 	if(EN_S[12] && (MUX_S[12] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 45:
                 	if(EN_S[13] && (MUX_S[13] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 46:
                 	if(EN_S[14] && (MUX_S[14] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 47:
                 	if(EN_S[15] && (MUX_S[15] == 2)) {
                   	OnPinStateChanged(number-FPGAPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 48:
                 	if(EN_S[0] && (MUX_S[0] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 49:
                 	if(EN_S[1] && (MUX_S[1] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 58:
                 	if(EN_S[10] && (MUX_S[10] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 59:
                 	if(EN_S[11] && (MUX_S[11] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 60:
                 	if(EN_S[12] && (MUX_S[12] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 61:
                 	if(EN_S[13] && (MUX_S[13] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 62:
                 	if(EN_S[14] && (MUX_S[14] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 63:
                 	if(EN_S[15] && (MUX_S[15] == 3)) {
                   	OnPinStateChanged(number-AltPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 64:
                 	if(EN_S[0] && (MUX_S[0] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 65:
                 	if(EN_S[0] && (MUX_S[1] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                  
                 case 68:
                 	if(EN_S[4] && (MUX_S[4] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 69:
                 	if(EN_S[5] && (MUX_S[5] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 70:
                 	if(EN_S[6] && (MUX_S[6] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 71:
                 	if(EN_S[7] && (MUX_S[7] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
                 
                 case 72:
                 	if(EN_S[8] && (MUX_S[8] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
                 case 73:
                 	if(EN_S[9] && (MUX_S[9] == 4)) {
                   	OnPinStateChanged(number-DebugPinsIndex, value);
-                  }
-                  break;
+                    }
+                    break;
 
             }
                       
         } 
 
-          private void OnPinStateChanged(int number, bool current)
+        private void OnPinStateChanged(int number, bool current)
         {    
             Connections[number].Set(current);
         }
 
-           private uint selection(IOMode value)
-            { 
-                switch((IOMode)value)
-                {
-                case IOMode.MainMode:               
+        private uint selection(IOMode value)
+        { 
+            switch((IOMode)value)
+            {
+            case IOMode.MainMode:               
                 this.InfoLog("Select {0}", value);    
                 return 1;            
-                case IOMode.Fpga_pinMode:             
+            case IOMode.Fpga_pinMode:             
                 this.InfoLog("Select {0}",value);
                 return 2; 
-                case IOMode.AlternativeMode:
+            case IOMode.AlternativeMode:
                 this.InfoLog("Select {0}",value); 
                 return 3;
-                case IOMode.DebugMode:
+            case IOMode.DebugMode:
                 this.InfoLog("Select {0}",value); 
                 return 4;
-                default:
-                    this.InfoLog(" Non existitng possible value written as selection lines.");
+            default:
+                this.InfoLog(" Non existitng possible value written as selection lines.");
                 return 0;
-                }
             }
+        }
           
           private void UpdateStatus(Registers reg , int i)
           {
             if (EN[i] != EN_S[i] || MUX[i] != MUX_S[i]) 
-                  status = false;        
+                status = false;        
           }
         private void PrepareRegisters()
         {          
@@ -652,8 +646,8 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                    {  
                     for (var i=0; i<=NumberofPadOutput; i++ )
                        {
-                          EN_S[i]=EN[i];
-                          MUX_S[i]=MUX[i];
+                            EN_S[i]=EN[i];
+                            MUX_S[i]=MUX[i];
                        }   
                        status = true;
                    }})  
@@ -665,10 +659,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,               
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[0]=selection((IOMode)value);   
                     UpdateStatus( Registers.std_pu_PAD_GPIO_A_0_ctl, 0); 
-                    }, 
+                }, 
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;    
@@ -679,10 +674,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[1]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_1_ctl,1);  
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ; 
@@ -693,10 +689,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[2]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_2_ctl,2); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)     
             ;  
@@ -707,10 +704,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[3]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_3_ctl,3);  
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ; 
@@ -721,10 +719,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[4]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_4_ctl,4); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)       
             ;
@@ -735,10 +734,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[5]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_5_ctl,5);  
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)   
             ;
@@ -749,10 +749,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[6]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_6_ctl,6); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)     
             ;
@@ -763,10 +764,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[7]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_7_ctl,7);  
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;
@@ -777,10 +779,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[8]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_8_ctl,8); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;
@@ -791,10 +794,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[9]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_9_ctl,9); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;
@@ -805,10 +809,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2, 
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[10]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_10_ctl,10); 
-                    }, 
+                }, 
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;  
@@ -819,10 +824,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,  
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[11]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_11_ctl,11); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;  
@@ -833,10 +839,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,  
-                writeCallback: (_, value) =>  {
-                  MUX[12]=selection((IOMode)value);
-                  UpdateStatus(Registers.std_pu_PAD_GPIO_A_12_ctl,12); 
-                    },
+                writeCallback: (_, value) =>  
+                {
+                    MUX[12]=selection((IOMode)value);
+                    UpdateStatus(Registers.std_pu_PAD_GPIO_A_12_ctl,12); 
+                },
                 
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)     
@@ -848,10 +855,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[13]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_13_ctl,13); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;
@@ -862,10 +870,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[14]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_14_ctl,14); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)     
             ;
@@ -876,10 +885,11 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 .WithTaggedFlag("PUE", 5)
                 .WithTaggedFlag("PUD", 6)
                 .WithEnumField<DoubleWordRegister, IOMode>(7, 2,     
-                writeCallback: (_, value) =>  {
+                writeCallback: (_, value) =>  
+                {
                     MUX[15]=selection((IOMode)value);
                     UpdateStatus(Registers.std_pu_PAD_GPIO_A_15_ctl,15); 
-                    },
+                },
                 name: "FUNCMAX")
                 .WithReservedBits(9, 23)    
             ;              
