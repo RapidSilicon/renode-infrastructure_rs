@@ -21,81 +21,12 @@ namespace Antmicro.Renode.Peripherals.SPI
     {
         public ATCSPI200(IMachine machine, int numberOfSlaves, bool hushTxFifoLevelWarnings = false) : base(machine)
         {
-            if(numberOfSlaves < 0 || numberOfSlaves > MaximumNumberOfSlaves)
-            {
-                throw new ConstructionException($"numberOfSlaves should be between 0 and {MaximumNumberOfSlaves - 1}");
-            }
-
-            IRQ = new GPIO();
-            NumberOfSlaves = numberOfSlaves;
-
             registers = new DoubleWordRegisterCollection(this, BuildRegisterMap());
-            rxQueue = new Queue<byte>();
-            txQueue = new Queue<byte>();
-            shouldDeassert = new bool[numberOfSlaves];
-
-            this.hushTxFifoLevelWarnings = hushTxFifoLevelWarnings;
         }
 
         public override void Reset()
-        {
-            IRQ.Unset();
+        { 
             registers.Reset();
-
-            rxQueue.Clear();
-            txQueue.Clear();
-
-            charactersToTransmit = 0;
-            transactionInProgress = false;
-
-            for(var i = 0; i < NumberOfSlaves; ++i)
-            {
-                shouldDeassert[i] = false;
-            }
-        }
-
-        public byte ReadByte(long address)
-        {
-            if(address >= (long)Registers.FIFOData + FIFODataWidth)
-            {
-                this.Log(LogLevel.Warning, "Tried to perform byte read from different register than FIFO; ignoring");
-                return 0x00;
-            }
-            return RxDequeue();
-        }
-
-        public void WriteByte(long address, byte value)
-        {
-            if(address >= (long)Registers.FIFOData + FIFODataWidth)
-            {
-                this.Log(LogLevel.Warning, "Tried to perform byte write to different register than FIFO; ignoring");
-                return;
-            }
-            TxEnqueue(value);
-        }
-
-        public ushort ReadWord(long address)
-        {
-            if(address >= (long)Registers.FIFOData + FIFODataWidth)
-            {
-                this.Log(LogLevel.Warning, "Tried to perform word read from different register than FIFO; ignoring");
-                return 0x00;
-            }
-
-            var value1 = RxDequeue();
-            var value2 = (ushort)RxDequeue() << 8;
-            return (ushort)(value1 | value2);
-        }
-
-        public void WriteWord(long address, ushort value)
-        {
-            if(address >= (long)Registers.FIFOData + FIFODataWidth)
-            {
-                this.Log(LogLevel.Warning, "Tried to perform word write to different register than FIFO; ignoring");
-                return;
-            }
-            TxEnqueue((byte)value);
-            TxEnqueue((byte)(value >> 8));
         }
 
         public uint ReadDoubleWord(long address)
@@ -114,7 +45,7 @@ namespace Antmicro.Renode.Peripherals.SPI
 
         public int NumberOfSlaves { get; }
 
-        private void UpdateInterrupts()
+       /* private void UpdateInterrupts()
         {
             interruptRxLevelPending.Value = rxQueue.Count >= (int)rxFIFOThreshold.Value;
             interruptTxLevelPending.Value = txQueue.Count >= (int)txFIFOThreshold.Value;
@@ -128,21 +59,6 @@ namespace Antmicro.Renode.Peripherals.SPI
             pending |= interruptRxOverrunEnabled.Value && interruptRxOverrunPending.Value;
             pending |= interruptRxUnderrunEnabled.Value && interruptRxUnderrunPending.Value;
             IRQ.Set(pending);
-        }
-
-        private void DeassertCS(Func<int, bool> predicate)
-        {
-            foreach(var indexPeripheral in ActivePeripherals)
-            {
-                var index = indexPeripheral.Item1;
-                var peripheral = indexPeripheral.Item2;
-
-                if(predicate(index))
-                {
-                    peripheral.FinishTransmission();
-                    shouldDeassert[index] = false;
-                }
-            }
         }
 
         private void StartTransaction()
@@ -288,7 +204,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 }
             }
             UpdateInterrupts();
-        }
+        }*/
 
         private Dictionary<long, DoubleWordRegister> BuildRegisterMap()
         {
@@ -345,73 +261,9 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithValueFields(0, 8, FIFODataWidth, name: "DATA",
                         valueProviderCallback: (_, __) => RxDequeue(),
                         writeCallback: (_, __, value) => TxEnqueue((byte)value))
-                },
-                /*{(long)Registers.MasterSignalsControl, new DoubleWordRegister(this)
-                    .WithFlag(0, out var spiEnabled, name: "CTRL0.spi_en",
-                        // deassert all CS lines when disabling the controller
-                        writeCallback: (_, value) => { if(!value) DeassertCS(x => true); })
-                        //Slave mode not supported?
-                    .WithFlag(1, name: "CTRL0.mm_en",
-                        changeCallback: (_, value) =>
-                        {
-                            if(!value && spiEnabled.Value)
-                            {
-                                this.Log(LogLevel.Warning, "CTRL0.mm_en has been unset, but only Master mode is supported");
-                            }
-                        })
-                    .WithReservedBits(2, 2)
-                    .WithTaggedFlag("CTRL0.ss_io", 4)
-                    .WithFlag(5, FieldMode.WriteOneToClear, name: "CTRL0.start",
-                        writeCallback: (_, value) => { if(value) StartTransaction(); })
-                    .WithReservedBits(6, 2)
-                    .WithFlag(8, name: "CTRL0.ss_ctrl",
-                        changeCallback: (_, value) =>
-                        {
-                            foreach(var indexPeripheral in ActivePeripherals)
-                            {
-                                shouldDeassert[indexPeripheral.Item1] |= !value;
-                            }
-                        })
-                    .WithReservedBits(9, 7)
-                    .WithValueField(16, 4, out slaveSelect, name: "CTRL0.ss_sel",
-                        changeCallback: (_, value) =>
-                        {
-                            for(var i = 0; i < NumberOfSlaves; ++i)
-                            {
-                                if(BitHelper.IsBitSet(value, (byte)i) && !TryGetByAddress(i, out var __))
-                                {
-                                    this.Log(LogLevel.Warning, "Tried to select SS{0}, but it's not connected to anything; ignoring", i);
-                                    BitHelper.SetBit(ref value, (byte)i, false);
-                                }
-                            }
-                            slaveSelect.Value = value;
-                        })
-                    .WithReservedBits(20, 12)
-                },
-                {(long)Registers.TrasmitPacketSize, new DoubleWordRegister(this)
-                    .WithValueField(0, 16, name: "CTRL1.tx_num_char",
-                        writeCallback: (_, value) => charactersToTransmit = (uint)value)
-                    .WithTag("CTRL1.rx_num_char", 16, 16)
-                },
-                {(long)Registers.StaticConfiguration, new DoubleWordRegister(this)
-                    .WithTaggedFlag("CTRL2.clk_pha", 0)
-                    .WithTaggedFlag("CTRL2.clk_pol", 1)
-                    .WithReservedBits(2, 6)
-                    .WithValueField(8, 4, name: "CTRL2.num_bits",
-                        writeCallback: (_, value) =>
-                        {
-                            if(value >= 1 && value != 8)
-                            {
-                                this.Log(LogLevel.Warning, "Only 8-bit characters are supported, but tried to change to {0}-bit characters; ignored", value);
-                            }
-                        })
-                    .WithTag("CTRL2.bus_width", 12, 2)
-                    .WithReservedBits(14, 1)
-                    .WithTaggedFlag("CTRL2.three_wire", 15)
-                    .WithTag("CTRL2.ss_pol", 16, 4)
-                    .WithReservedBits(20, 12)
-                },  
-                {(long)Registers.InterruptStatusFlags, new DoubleWordRegister(this)
+                },     
+      
+                /*{(long)Registers.InterruptStatusFlags, new DoubleWordRegister(this)
                     //TX FIFO Threshold Level Crossed Flag(MAX)
                     //TX FIFO Threshold interruptO(ATC)
                     .WithFlag(0, out interruptTxLevelPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.tx_level")
@@ -538,32 +390,11 @@ namespace Antmicro.Renode.Peripherals.SPI
                     constructedRegister.WithReservedBits(5, 1);
                 }
                 registerMap.Add((long)Registers.DMAControl, constructedRegister);
-            }
+            }*/
 
             return registerMap;
-        } */
-
-        private IEnumerable<Tuple<int, ISPIPeripheral>> ActivePeripherals
-        {
-            get
-            {
-                return Enumerable
-                    .Range(0, NumberOfSlaves)
-                    .Select(index =>
-                    {
-                        if(!BitHelper.IsBitSet(slaveSelect.Value, (byte)index))
-                        {
-                            return null;
-                        }
-                        if(!TryGetByAddress(index, out var peripheral))
-                        {
-                            return null;
-                        }
-                        return Tuple.Create(index, peripheral);
-                    })
-                    .Where(tuple => tuple != null);
-            }
         }
+
 
         private bool[] shouldDeassert;
         private bool transactionInProgress;
