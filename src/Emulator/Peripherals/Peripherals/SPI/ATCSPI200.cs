@@ -22,6 +22,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         public ATCSPI200(IMachine machine, int numberOfSlaves, bool hushTxFifoLevelWarnings = false) : base(machine)
         {
             registers = new DoubleWordRegisterCollection(this, BuildRegisterMap());
+            rxQueue = new Queue<byte>();
+            txQueue = new Queue<byte>();
         }
 
         public override void Reset()
@@ -423,6 +425,24 @@ namespace Antmicro.Renode.Peripherals.SPI
             return sizeLeft;
         }
 
+        private void EnqueueToTransmitBuffer(ushort val)
+        {
+            if(txQueue.Count == fifoSize)
+            {
+                this.Log(LogLevel.Warning, "Trying to write to a full FIFO. Dropping the data");
+                //transmitOverflow.Value = true;  TODO : invoke interrupt
+                //UpdateInterrupt();
+                return;
+            }
+
+            txQueue.Enqueue(val);
+
+            /*if(transmitBuffer.Count <= transmitThreshold)
+            {
+                transmitEmpty.Value = true;
+                UpdateInterrupt();
+            }*/
+        }
         private bool[] shouldDeassert;
         private bool transactionInProgress;
         private bool hushTxFifoLevelWarnings;
@@ -460,8 +480,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;
 
-        private readonly Queue<byte> rxQueue;
-        private readonly Queue<byte> txQueue;
+        private readonly Queue<byte> rxQueue;  //updated
+        private readonly Queue<byte> txQueue;  //updated
         private readonly DoubleWordRegisterCollection registers;
 
         private const byte DummyResponseByte = 0xFF;
