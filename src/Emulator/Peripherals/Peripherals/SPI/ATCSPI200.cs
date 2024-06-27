@@ -17,7 +17,7 @@ using Antmicro.Renode.Utilities;
 
 namespace Antmicro.Renode.Peripherals.SPI
 {
-    public class ATCSPI200 : SimpleContainer<ISPIPeripheral>, IDoubleWordPeripheral, IWordPeripheral, IBytePeripheral, IKnownSize
+    public class ATCSPI200 : SimpleContainer<ISPIPeripheral>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral,*/
     {
         public ATCSPI200(IMachine machine, int numberOfSlaves, bool hushTxFifoLevelWarnings = false) : base(machine)
         {
@@ -218,7 +218,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithReservedBits(5, 2)
                     .WithFlag(7, name: "DataMerge",
                         writeCallback: (_, value) => {this.InfoLog("Data Merge feild");})
-                    .WithValueField(8, 5, name: "DataLen",
+                    .WithValueField(8, 5,out dataLength, name: "DataLen",
                         writeCallback: (_, value) => {this.InfoLog("Data Length");})
                     .WithReservedBits(13, 3)
                     .WithValueField(16, 2, name: "AddrLen",
@@ -258,10 +258,25 @@ namespace Antmicro.Renode.Peripherals.SPI
                 //SPI FIFO Data Registers MAX
                 //TODO:rework required
                 {(long)Registers.Data, new DoubleWordRegister(this)
-                    .WithValueFields(0, 8, FIFODataWidth, name: "DATA",
-                        valueProviderCallback: (_, __) => RxDequeue(),
-                        writeCallback: (_, __, value) => TxEnqueue((byte)value))
+                    .WithValueField(0, 31, name: "DATA",
+                        writeCallback: (_, value) => {this.InfoLog("Data Register");})
+                       // ,writeCallback: (_, __, value) => TxEnqueue((byte)value))
+                    
                 },     
+                {(long)Registers.Control, new DoubleWordRegister(this)
+                    .WithFlag(0, name: "SPIRST",
+                        writeCallback: (_, value) => {this.InfoLog("SPI reset");})
+                    .WithFlag(1, name: "RXFIFORST",
+                        writeCallback: (_, value) => {this.InfoLog("Receive FIFO reset");})
+                    .WithFlag(2, name: "TXFIFORST",
+                        writeCallback: (_, value) => {this.InfoLog("Transmit FIFO reset");})
+                    .WithTaggedFlag("RXDMAEN",3)
+                    .WithTaggedFlag("TXDMAEN",4)
+                    .WithReservedBits(5, 3)
+                    .WithValueField(8, 8, out rxFIFOThreshold, name: "RXTHRES")
+                    .WithValueField(16, 5, out txFIFOThreshold, name: "TXTHRES")
+                    .WithReservedBits(24, 8)     
+                },
       
                 /*{(long)Registers.InterruptStatusFlags, new DoubleWordRegister(this)
                     //TX FIFO Threshold Level Crossed Flag(MAX)
@@ -394,7 +409,19 @@ namespace Antmicro.Renode.Peripherals.SPI
 
             return registerMap;
         }
+       
+        private uint GetDataLength()
+        {
+            // frameSize keeps value substracted by 1
+            var sizeLeft = (uint)dataLength.Value + 1;
+            if(sizeLeft % 8 != 0)
+            {
+                sizeLeft += 8 - (sizeLeft % 8);
+                this.Log(LogLevel.Warning, "Only 8-bit-aligned transfers are currently supported, but data length is set to {0}, adjusting it to: {1}", frameSize.Value, sizeLeft);
+            }
 
+            return sizeLeft;
+        }
 
         private bool[] shouldDeassert;
         private bool transactionInProgress;
@@ -408,6 +435,7 @@ namespace Antmicro.Renode.Peripherals.SPI
 
         private IValueRegisterField rxFIFOThreshold;
         private IValueRegisterField txFIFOThreshold;
+        private IValueRegisterField dataLength;  //updated
 
         private IFlagRegisterField interruptTxLevelPending;
         private IFlagRegisterField interruptTxEmptyPending;
@@ -427,7 +455,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         private IFlagRegisterField interruptRxOverrunEnabled;
         private IFlagRegisterField interruptRxUnderrunEnabled;
         
-        private readonly uint fifoSize;
+        private readonly uint fifoSize;   //updated
         private const int FIFODataWidth = 0x04;
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;

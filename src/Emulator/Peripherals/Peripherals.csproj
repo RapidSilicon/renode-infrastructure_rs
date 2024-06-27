@@ -77,6 +77,7 @@
     <Compile Include="Peripherals\Timers\ATCPIT100.cs" />
     <Compile Include="Peripherals\Timers\ATCWDT200.cs" />
     <Compile Include="Peripherals\GPIOPort\ATCGPIO100.cs" />
+    <Compile Include="Peripherals\SPI\ATCSPI200.cs" />
     <Compile Include="Peripherals\Miscellaneous\RS_SystemControlUnit.cs" />
     <Compile Include="Peripherals\Miscellaneous\ResetGenerator.cs" />
     <Compile Include="Peripherals\UART\AxiUartLite.cs" />
