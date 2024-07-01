@@ -14,16 +14,18 @@ using Antmicro.Renode.Logging;
 using Antmicro.Renode.Peripherals.Bus;
 using Antmicro.Renode.Exceptions;
 using Antmicro.Renode.Utilities;
+using Antmicro.Renode.Peripherals.MTD;
+using System.Collections.Specialized;
 
 namespace Antmicro.Renode.Peripherals.SPI
 {
-    public class ATCSPI200 : SimpleContainer<ISPIPeripheral>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral,*/
+    public class ATCSPI200 : SimpleContainer<Micron_MT25Q>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral ,NullRegistrationPointPeripheralContainer<ISPIFlash>*/
     {
-        public ATCSPI200(IMachine machine, int numberOfSlaves, bool hushTxFifoLevelWarnings = false) : base(machine)
+        public ATCSPI200(IMachine machine, uint fifoSize, bool hushTxFifoLevelWarnings = false) : base(machine)
         {
             registers = new DoubleWordRegisterCollection(this, BuildRegisterMap());
-            rxQueue = new Queue<byte>();
-            txQueue = new Queue<byte>();
+            rxQueue = new Queue<uint>();
+            txQueue = new Queue<uint>();
         }
 
         public override void Reset()
@@ -261,8 +263,19 @@ namespace Antmicro.Renode.Peripherals.SPI
                 //TODO:rework required
                 {(long)Registers.Data, new DoubleWordRegister(this)
                     .WithValueField(0, 31, name: "DATA",
-                        writeCallback: (_, value) => {this.InfoLog("Data Register");})
-                       // ,writeCallback: (_, __, value) => TxEnqueue((byte)value))
+                        writeCallback: (_, val) => {
+                            EnqueueToTransmitBuffer((uint)val);  //byte/ushort/uint
+                            this.InfoLog("Data Register");},
+                       valueProviderCallback: _ =>
+                    {   
+                        if(!TryDequeueFromReceiveBuffer(out var data))
+                        {
+                            this.Log(LogLevel.Warning, "Trying to read from an empty FIFO");
+                            return 0;
+                        }
+
+                        return data;
+                    })
                     
                 },     
                 {(long)Registers.Control, new DoubleWordRegister(this)
@@ -419,13 +432,35 @@ namespace Antmicro.Renode.Peripherals.SPI
             if(sizeLeft % 8 != 0)
             {
                 sizeLeft += 8 - (sizeLeft % 8);
-                this.Log(LogLevel.Warning, "Only 8-bit-aligned transfers are currently supported, but data length is set to {0}, adjusting it to: {1}", frameSize.Value, sizeLeft);
+                this.Log(LogLevel.Warning, "Only 8-bit-aligned transfers are currently supported, but data length is set to {0}, adjusting it to: {1}", dataLength.Value, sizeLeft);
             }
 
             return sizeLeft;
         }
+        
+         public bool TryDequeueFromReceiveBuffer(out uint data)
+        {
+            if(!rxQueue.TryDequeue(out data))
+            {
+               // receiveUnderflow.Value = true;
+               // UpdateInterrupt();
 
-        private void EnqueueToTransmitBuffer(ushort val)
+                data = 0;
+                return false;
+            }
+
+        
+
+          /*  if(receiveBuffer.Count <= receiveThreshold)
+            {
+                receiveFull.Value = false;
+                UpdateInterrupt();
+            }*/
+
+            return true;
+        }
+
+        private void EnqueueToTransmitBuffer(uint val)   //byte or ushort or uint
         {
             if(txQueue.Count == fifoSize)
             {
@@ -443,6 +478,46 @@ namespace Antmicro.Renode.Peripherals.SPI
                 UpdateInterrupt();
             }*/
         }
+
+        private void sendCommand(uint command, int size, uint value ) //uint length
+        {  
+            if(sizeLeft == 0)
+            {
+                // let's assume this is a new transfer
+                this.Log(LogLevel.Debug, "Starting a new SPI xfer, frame size: {0} bytes", GetDataLength() / 8);
+                sizeLeft = GetDataLength();
+
+                this.Log(LogLevel.Warning, "Flash command {0:X}", command);
+
+                /*switch((SPIFlashCommand)(command & 0xff))
+                {
+                case SPIFlashCommand.PageProgram:
+                {
+
+                } */ 
+
+                 // we can read up to 4 bytes at a time
+                 var byteIdx = 0;
+                 uint receivedWord = 0;
+
+                 this.Log(LogLevel.Debug, "Sending 0x{0:X} to the device", value);
+                 while(sizeLeft != 0 && byteIdx < 4)
+                {
+                var resp = Micron_MT25Q.Transmit((byte)value);
+
+                receivedWord |= (uint)resp << (byteIdx * 8);
+
+                value >>= 8;
+                sizeLeft -= 8;
+                byteIdx++;
+            }
+            this.Log(LogLevel.Debug, "Received response 0x{0:X} from the device", receivedWord);
+            }
+
+        }  
+
+
+
         private bool[] shouldDeassert;
         private bool transactionInProgress;
         private bool hushTxFifoLevelWarnings;
@@ -476,12 +551,13 @@ namespace Antmicro.Renode.Peripherals.SPI
         private IFlagRegisterField interruptRxUnderrunEnabled;
         
         private readonly uint fifoSize;   //updated
+        private uint sizeLeft;  //updated
         private const int FIFODataWidth = 0x04;
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;
 
-        private readonly Queue<byte> rxQueue;  //updated
-        private readonly Queue<byte> txQueue;  //updated
+        private readonly Queue<uint> rxQueue;  //updated
+        private readonly Queue<uint> txQueue;  //updated
         private readonly DoubleWordRegisterCollection registers;
 
         private const byte DummyResponseByte = 0xFF;
