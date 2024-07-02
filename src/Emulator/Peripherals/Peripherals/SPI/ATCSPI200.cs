@@ -19,7 +19,7 @@ using System.Collections.Specialized;
 
 namespace Antmicro.Renode.Peripherals.SPI
 {
-    public class ATCSPI200 : SimpleContainer<Micron_MT25Q>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral ,NullRegistrationPointPeripheralContainer<ISPIFlash>*/
+    public class ATCSPI200 : NullRegistrationPointPeripheralContainer<Micron_MT25Q>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral ,NullRegistrationPointPeripheralContainer<ISPIFlash>*/
     {
         public ATCSPI200(IMachine machine, uint fifoSize, bool hushTxFifoLevelWarnings = false) : base(machine)
         {
@@ -478,45 +478,54 @@ namespace Antmicro.Renode.Peripherals.SPI
                 UpdateInterrupt();
             }*/
         }
-
-        private void sendCommand(uint command, int size, uint value ) //uint length
+        
+        private void sendCommand(uint command) //uint length
         {  
             if(sizeLeft == 0)
             {
                 // let's assume this is a new transfer
                 this.Log(LogLevel.Debug, "Starting a new SPI xfer, frame size: {0} bytes", GetDataLength() / 8);
                 sizeLeft = GetDataLength();
-
-                this.Log(LogLevel.Warning, "Flash command {0:X}", command);
-
-                /*switch((SPIFlashCommand)(command & 0xff))
+                if(command==0x02)  //write command
                 {
-                case SPIFlashCommand.PageProgram:
+                    while (sizeLeft != 0 )
+                    { 
+                        foreach(var value in txQueue)
+                        {
+                            RegisteredPeripheral.Transmit((byte)value);
+                        }
+                        txQueue.Clear();
+                    }
+                    TryFinishTransmission();
+                }
+                 
+                if(command==0x03)   //read command
                 {
-
-                } */ 
-
-                 // we can read up to 4 bytes at a time
-                 var byteIdx = 0;
-                 uint receivedWord = 0;
-
-                 this.Log(LogLevel.Debug, "Sending 0x{0:X} to the device", value);
-                 while(sizeLeft != 0 && byteIdx < 4)
-                {
-                var resp = Micron_MT25Q.Transmit((byte)value);
-
-                receivedWord |= (uint)resp << (byteIdx * 8);
-
-                value >>= 8;
-                sizeLeft -= 8;
-                byteIdx++;
-            }
-            this.Log(LogLevel.Debug, "Received response 0x{0:X} from the device", receivedWord);
+                   
+                    while (sizeLeft != 0 )
+                    { 
+                        HandleByteReception();
+                    }
+                }
+                
+           
             }
 
         }  
+        private void HandleByteReception()
+        {
+            var receivedByte = RegisteredPeripheral.Transmit(0);
+            rxQueue.Enqueue(receivedByte);
+            TryFinishTransmission();
+        }
 
-
+         private void TryFinishTransmission()
+        {
+            //TODO: put conditions
+            RegisteredPeripheral.FinishTransmission();
+            
+        }
+         
 
         private bool[] shouldDeassert;
         private bool transactionInProgress;
