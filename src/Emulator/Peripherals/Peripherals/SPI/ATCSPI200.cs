@@ -26,6 +26,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             registers = new DoubleWordRegisterCollection(this, BuildRegisterMap());
             rxQueue = new Queue<uint>();
             txQueue = new Queue<uint>();
+            this.fifoSize=fifoSize;
         }
 
         public override void Reset()
@@ -251,21 +252,23 @@ namespace Antmicro.Renode.Peripherals.SPI
                 },
                 {(long)Registers.Command, new DoubleWordRegister(this)
                     .WithValueField(0, 7, name: "CMD",
-                        writeCallback: (_, value) => {this.InfoLog("Command enable");})
+                        writeCallback: (_, value) => {
+                            sendCommand((uint)value);
+                            this.InfoLog("Command enable");})
                     .WithReservedBits(8, 24)
                 },
                  {(long)Registers.Address, new DoubleWordRegister(this)
-                    .WithValueField(0, 31, name: "Address",
+                    .WithValueField(0, 32, name: "Address",
                         writeCallback: (_, value) => {this.InfoLog("Address Register");})
                 },
                 //SPI Data Register ATC
                 //SPI FIFO Data Registers MAX
                 //TODO:rework required
                 {(long)Registers.Data, new DoubleWordRegister(this)
-                    .WithValueField(0, 31, name: "DATA",
+                    .WithValueField(0, 32, name: "DATA",
                         writeCallback: (_, val) => {
                             EnqueueToTransmitBuffer((uint)val);  //byte/ushort/uint
-                            this.InfoLog("Data Register");},
+                           },
                        valueProviderCallback: _ =>
                     {   
                         if(!TryDequeueFromReceiveBuffer(out var data))
@@ -481,31 +484,31 @@ namespace Antmicro.Renode.Peripherals.SPI
         
         private void sendCommand(uint command) //uint length
         {  
-            if(sizeLeft == 0)
+           // if(sizeLeft == 0)
             {
                 // let's assume this is a new transfer
-                this.Log(LogLevel.Debug, "Starting a new SPI xfer, frame size: {0} bytes", GetDataLength() / 8);
-                sizeLeft = GetDataLength();
+               // this.Log(LogLevel.Debug, "Starting a new SPI xfer, frame size: {0} bytes", GetDataLength() / 8);
+               // sizeLeft = GetDataLength();
                 if(command==0x02)  //write command
                 {
-                    while (sizeLeft != 0 )
-                    { 
+                   // while (sizeLeft != 0 )
+                   // { 
                         foreach(var value in txQueue)
                         {
                             RegisteredPeripheral.Transmit((byte)value);
                         }
-                        txQueue.Clear();
-                    }
+                       // txQueue.Clear();
+                   // }
                     TryFinishTransmission();
                 }
                  
                 if(command==0x03)   //read command
                 {
                    
-                    while (sizeLeft != 0 )
-                    { 
+                  //  while (sizeLeft != 0 )
+                    //{ 
                         HandleByteReception();
-                    }
+                    //}
                 }
                 
            
@@ -525,7 +528,23 @@ namespace Antmicro.Renode.Peripherals.SPI
             RegisteredPeripheral.FinishTransmission();
             
         }
-         
+        
+        [ConnectionRegionAttribute("xip")]
+        public uint XipReadDoubleWord(long offset)
+        {
+           /* if(!memioEnable.Value)
+            {
+                this.Log(LogLevel.Warning, "Trying to read from XIP region at offset 0x{0:X}, but memio is disabled", offset);
+                return 0;
+            }*/
+
+            return (RegisteredPeripheral as IDoubleWordPeripheral)?.ReadDoubleWord(offset) ?? 0;
+        }
+        [ConnectionRegionAttribute("xip")]
+        public void XipWriteDoubleWord(long offset, uint value)
+        {
+            this.Log(LogLevel.Warning, "Trying to write 0x{0:X} to XIP region at offset 0x{1:x}. Direct writing is not supported", value, offset);
+        }
 
         private bool[] shouldDeassert;
         private bool transactionInProgress;
