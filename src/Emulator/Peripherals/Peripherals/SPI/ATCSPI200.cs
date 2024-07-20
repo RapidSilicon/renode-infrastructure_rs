@@ -19,7 +19,7 @@ using System.Collections.Specialized;
 
 namespace Antmicro.Renode.Peripherals.SPI
 {
-    public class ATCSPI200 : NullRegistrationPointPeripheralContainer<Micron_MT25Q>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral ,NullRegistrationPointPeripheralContainer<ISPIFlash>*/
+    public class ATCSPI200 : NullRegistrationPointPeripheralContainer<ISPIPeripheral>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral ,NullRegistrationPointPeripheralContainer<ISPIFlash>*/
     {
         public ATCSPI200(IMachine machine, uint fifoSize, bool hushTxFifoLevelWarnings = false) : base(machine)
         {
@@ -223,17 +223,17 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithReservedBits(5, 2)
                     .WithFlag(7, name: "DataMerge",
                         writeCallback: (_, value) => {this.InfoLog("Data Merge feild");})
-                    .WithValueField(8, 5,out dataLength, name: "DataLen",
-                        writeCallback: (_, value) => {this.InfoLog("Data Length");})
+                    .WithValueField(8, 5,out dataLength, name: "DataLen")
+                       //, writeCallback: (_, value) => {this.InfoLog("Data Length");})
                     .WithReservedBits(13, 3)
-                    .WithValueField(16, 2, name: "AddrLen",
-                        writeCallback: (_, value) => {this.InfoLog("Address Length");})
+                    .WithValueField(16, 2,out addressLength, name: "AddrLen")
+                       //, writeCallback: (_, value) => {this.InfoLog("Address Length");})
                     .WithReservedBits(18, 14)
                      
                 }, 
                 {(long)Registers.TransferControl, new DoubleWordRegister(this)
-                    .WithValueField(0, 8, name: "RdTranCnt",
-                        writeCallback: (_, value) => {this.InfoLog("Transfer count for read data");})
+                    .WithValueField(0, 8,FieldMode.Read, name: "RdTranCnt",
+                        valueProviderCallback: _ => (uint)rxQueue.Count)
                     .WithValueField(9, 2, name: "DummyCnt",
                         writeCallback: (_, value) => {this.InfoLog("Dummy data count");})
                     .WithTaggedFlag("TokenValue", 11)
@@ -244,22 +244,22 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithTag("TransMode", 24, 4)  //TODO add enum feild
                     .WithFlag(28, name: "AddrFmt",
                         writeCallback: (_, value) => {this.InfoLog("Address phase format");})
-                    .WithFlag(29, name: "AddrEn",
-                        writeCallback: (_, value) => {this.InfoLog("Address phase enable");})
-                    .WithFlag(30, name: "CmdEn",
-                        writeCallback: (_, value) => {this.InfoLog("Command phase enable");})
+                    .WithFlag(29,out addressPhaseEnable, name: "AddrEn")
+                        //,writeCallback: (_, value) => {this.InfoLog("Address phase enable");})
+                    .WithFlag(30,out commandPhaseEnable , name: "CmdEn")
+                        //,writeCallback: (_, value) => {this.InfoLog("Command phase enable");})
                     .WithTaggedFlag("SlvDataOnly", 31)
                 },
                 {(long)Registers.Command, new DoubleWordRegister(this)
-                    .WithValueField(0, 7, name: "CMD",
+                    .WithValueField(0, 8,out command, name: "CMD",
                         writeCallback: (_, value) => {
-                            sendCommand((uint)value);
+                        PerformTransaction((int)addressLength.Value, (int)dataLength.Value);
                             this.InfoLog("Command enable");})
                     .WithReservedBits(8, 24)
                 },
                  {(long)Registers.Address, new DoubleWordRegister(this)
-                    .WithValueField(0, 32, name: "Address",
-                        writeCallback: (_, value) => {this.InfoLog("Address Register");})
+                    .WithValueField(0, 32,out serialFlashAddress , name: "Address")
+                       // ,writeCallback: (_, value) => {this.InfoLog("Address Register");})
                 },
                 //SPI Data Register ATC
                 //SPI FIFO Data Registers MAX
@@ -428,7 +428,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             return registerMap;
         }
        
-        private uint GetDataLength()
+        /*private uint GetDataLength()
         {
             // frameSize keeps value substracted by 1
             var sizeLeft = (uint)dataLength.Value + 1;
@@ -439,7 +439,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             }
 
             return sizeLeft;
-        }
+        }*/
         
          public bool TryDequeueFromReceiveBuffer(out uint data)
         {
@@ -482,43 +482,96 @@ namespace Antmicro.Renode.Peripherals.SPI
             }*/
         }
         
-        private void sendCommand(uint command) //uint length
-        {  
+       // private void sendCommand(uint command) //uint length
+       // {  
            // if(sizeLeft == 0)
-            {
+          //  {
                 // let's assume this is a new transfer
                // this.Log(LogLevel.Debug, "Starting a new SPI xfer, frame size: {0} bytes", GetDataLength() / 8);
                // sizeLeft = GetDataLength();
-                if(command==0x02)  //write command
-                {
+               // if(command==0x02)  //write command
+               // {
                    // while (sizeLeft != 0 )
                    // { 
-                        foreach(var value in txQueue)
-                        {
-                            RegisteredPeripheral.Transmit((byte)value);
-                        }
+                       // foreach(var value in txQueue)
+                        //{
+                           // RegisteredPeripheral.Transmit((byte)value);
+                           // this.InfoLog("transmit ");
+                       // }
                        // txQueue.Clear();
                    // }
-                    TryFinishTransmission();
-                }
+                   // TryFinishTransmission();
+              //  }
                  
-                if(command==0x03)   //read command
-                {
+               // if(command==0x03)   //read command
+              //  {
                    
                   //  while (sizeLeft != 0 )
                     //{ 
-                        HandleByteReception();
+                 //       HandleByteReception();
                     //}
-                }
+              //  }
                 
            
-            }
+           // }
 
-        }  
+        //}  
+
+        private void PerformTransaction(int addressWidth, int dataWidth )
+        {
+            if(RegisteredPeripheral == null)
+            {
+                this.ErrorLog("Attempted to perform a UMA transaction with no peripheral attached");
+                return;
+            }
+            
+            if(commandPhaseEnable.Value)
+            {
+                RegisteredPeripheral.Transmit((byte)command.Value);
+                this.InfoLog("Command is {0}  , and enable is {1}", command.Value, commandPhaseEnable.Value);
+
+           }
+           
+           if(addressPhaseEnable.Value)
+           {
+                var a0 = (byte)(serialFlashAddress.Value);
+                var a1 = (byte)(serialFlashAddress.Value>>8);
+                var a2 = (byte)(serialFlashAddress.Value>>16);
+                RegisteredPeripheral.Transmit(a2);
+                RegisteredPeripheral.Transmit(a1);
+                RegisteredPeripheral.Transmit(a0);
+               // RegisteredPeripheral.Transmit((byte)(serialFlashAddress.Value>>24));
+                this.InfoLog("addrress is {0} , {1} , {2}", a2, a1, a0);
+           }
+           
+          /* for (var i=0; i < dataWidth; i++)
+           {
+            foreach(var value in txQueue)
+                {
+                    RegisteredPeripheral.Transmit((byte)value);
+                    this.InfoLog("transmit ");
+                }
+            }*/
+           
+           // RegisteredPeripheral.FinishTransmission();
+           // if(command.Value == 0x03)
+           // {
+           // lock(innerLock)
+           // {
+              HandleByteReception();
+              this.InfoLog(" command value is {0}", command.Value);
+             
+           // }
+           // }
+                     
+        }
         private void HandleByteReception()
         {
             var receivedByte = RegisteredPeripheral.Transmit(0);
+            for (var i = 0; i < 8; i++)
+            {
             rxQueue.Enqueue(receivedByte);
+            }
             TryFinishTransmission();
         }
 
@@ -559,6 +612,9 @@ namespace Antmicro.Renode.Peripherals.SPI
         private IValueRegisterField rxFIFOThreshold;
         private IValueRegisterField txFIFOThreshold;
         private IValueRegisterField dataLength;  //updated
+        private IValueRegisterField command; //updated
+        private IValueRegisterField serialFlashAddress; //updated
+         private IValueRegisterField addressLength;
 
         private IFlagRegisterField interruptTxLevelPending;
         private IFlagRegisterField interruptTxEmptyPending;
@@ -568,6 +624,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         private IFlagRegisterField interruptTxOverrunPending;
         private IFlagRegisterField interruptRxOverrunPending;
         private IFlagRegisterField interruptRxUnderrunPending;
+        private IFlagRegisterField commandPhaseEnable; //updated
+        private IFlagRegisterField addressPhaseEnable;
 
         private IFlagRegisterField interruptTxLevelEnabled;
         private IFlagRegisterField interruptTxEmptyEnabled;
@@ -583,12 +641,13 @@ namespace Antmicro.Renode.Peripherals.SPI
         private const int FIFODataWidth = 0x04;
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;
-
+   
         private readonly Queue<uint> rxQueue;  //updated
         private readonly Queue<uint> txQueue;  //updated
         private readonly DoubleWordRegisterCollection registers;
 
         private const byte DummyResponseByte = 0xFF;
+        private readonly object innerLock = new object();//updated
 
         private enum Registers : long
         {
