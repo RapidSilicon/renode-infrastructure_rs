@@ -540,7 +540,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 RegisteredPeripheral.Transmit(a2);
                 RegisteredPeripheral.Transmit(a1);
                 RegisteredPeripheral.Transmit(a0);
-               // RegisteredPeripheral.Transmit((byte)(serialFlashAddress.Value>>24));
+
                 this.InfoLog("addrress is {0} , {1} , {2}", a2, a1, a0);
            }
            
@@ -558,9 +558,12 @@ namespace Antmicro.Renode.Peripherals.SPI
            // {
            // lock(innerLock)
            // {
+            for (var i = 0; i < 8; i++)
+            {
               HandleByteReception();
-              this.InfoLog(" command value is {0}", command.Value);
-             
+            }
+            this.InfoLog(" command value is {0}", command.Value);
+            TryFinishTransmission();
            // }
            // }
                      
@@ -568,11 +571,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         private void HandleByteReception()
         {
             var receivedByte = RegisteredPeripheral.Transmit(0);
-            for (var i = 0; i < 8; i++)
-            {
+           
             rxQueue.Enqueue(receivedByte);
-            }
-            TryFinishTransmission();
         }
 
          private void TryFinishTransmission()
