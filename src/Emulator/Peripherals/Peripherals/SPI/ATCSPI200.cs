@@ -50,167 +50,6 @@ namespace Antmicro.Renode.Peripherals.SPI
 
         public int NumberOfSlaves { get; }
 
-       /* private void UpdateInterrupts()
-        {
-            interruptRxLevelPending.Value = rxQueue.Count >= (int)rxFIFOThreshold.Value;
-            interruptTxLevelPending.Value = txQueue.Count >= (int)txFIFOThreshold.Value;
-
-            var pending = false;
-            pending |= interruptTxLevelEnabled.Value && interruptTxLevelPending.Value;
-            pending |= interruptTxEmptyEnabled.Value && interruptTxEmptyPending.Value;
-            pending |= interruptRxLevelEnabled.Value && interruptRxLevelPending.Value;
-            pending |= interruptRxFullEnabled.Value && interruptRxFullPending.Value;
-            pending |= interruptTransactionFinishedEnabled.Value && interruptTransactionFinishedPending.Value;
-            pending |= interruptRxOverrunEnabled.Value && interruptRxOverrunPending.Value;
-            pending |= interruptRxUnderrunEnabled.Value && interruptRxUnderrunPending.Value;
-            IRQ.Set(pending);
-        }
-
-        private void StartTransaction()
-        {
-            // deassert CS of active peripherals that are not enabled in the slave select register anymore
-            DeassertCS(x => !BitHelper.IsBitSet((uint)slaveSelect.Value, (byte)x));
-
-            foreach(var value in txQueue)
-            {
-                Transmit(value);
-            }
-
-            txQueue.Clear();
-
-            transactionInProgress = true;
-            interruptTxEmptyPending.Value = true;
-
-            UpdateInterrupts();
-            TryFinishTransaction();
-        }
-
-        private void TryFinishTransaction()
-        {
-            if(charactersToTransmit > 0)
-            {
-                return;
-            }
-
-            transactionInProgress = false;
-            interruptTransactionFinishedPending.Value = true;
-
-            // deassert CS of active peripherals marked in the should deassert array
-            DeassertCS(x => shouldDeassert[x]);
-            UpdateInterrupts();
-        }
-
-        private void Transmit(byte value)
-        {
-            var numberOfPeripherals = ActivePeripherals.Count();
-            foreach(var indexPeripheral in ActivePeripherals)
-            {
-                var peripheral = indexPeripheral.Item2;
-                var output = peripheral.Transmit(value);
-                // In case multiple SS lines are chosen, we are deliberately
-                // ignoring output from all of them. Therefore, this configuration
-                // can only be used to send data to multiple receivers at once.
-                if(numberOfPeripherals == 1)
-                {
-                    RxEnqueue(output);
-                }
-            }
-
-            if(numberOfPeripherals == 0)
-            {
-                // If there is no target device we still need to populate the RX queue
-                // with dummy bytes
-                RxEnqueue(DummyResponseByte);
-            }
-
-            charactersToTransmit -= 1;
-            TryFinishTransaction();
-        }
-
-        private void TryTransmit()
-        {
-            if(!transactionInProgress || rxQueue.Count == FIFOLength || txQueue.Count == 0)
-            {
-                return;
-            }
-
-            var bytesToTransmit = Math.Min(FIFOLength - rxQueue.Count, txQueue.Count);
-            for(var i = 0; i < bytesToTransmit; ++i)
-            {
-                Transmit(txQueue.Dequeue());
-            }
-        }
-
-        private void RxEnqueue(byte value)
-        {
-            if(!rxFIFOEnabled.Value)
-            {
-                return;
-            }
-
-            if(rxQueue.Count == FIFOLength)
-            {
-                interruptRxOverrunPending.Value = true;
-                UpdateInterrupts();
-                return;
-            }
-            rxQueue.Enqueue(value);
-            if(rxQueue.Count == FIFOLength)
-            {
-                interruptRxFullPending.Value = true;
-                UpdateInterrupts();
-            }
-        }
-
-        private byte RxDequeue()
-        {
-            if(!rxFIFOEnabled.Value)
-            {
-                this.Log(LogLevel.Warning, "Tried to read from RX FIFO while it's disabled");
-                return 0x00;
-            }
-
-            if(!rxQueue.TryDequeue(out var result))
-            {
-                interruptRxUnderrunPending.Value |= true;
-            }
-            else
-            {
-                TryTransmit();
-            }
-
-            TryFinishTransaction();
-            UpdateInterrupts();
-
-            return result;
-        }
-
-        private void TxEnqueue(byte value)
-        {
-            if(transactionInProgress && rxQueue.Count < FIFOLength)
-            {
-                // If we have active transaction and we have room to receive data,
-                // send/receive it immediately
-                Transmit(value);
-            }
-            else
-            {
-                // Otherwise, we either generate TX overrun interrupt if internal
-                // TX buffer is full, or enqueue new data to it. This data will be
-                // send either after START condition, or when there is room in RX
-                // buffer when transaction is active
-                if(txQueue.Count == FIFOLength)
-                {
-                    interruptTxOverrunPending.Value = true;
-                }
-                else
-                {
-                    txQueue.Enqueue(value);
-                }
-            }
-            UpdateInterrupts();
-        }*/
-
         private Dictionary<long, DoubleWordRegister> BuildRegisterMap()
         {
             var registerMap = new Dictionary<long, DoubleWordRegister>()
@@ -231,6 +70,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithReservedBits(18, 14)
                      
                 }, 
+
                 {(long)Registers.TransferControl, new DoubleWordRegister(this)
                     .WithValueField(0, 8,FieldMode.Read, name: "RdTranCnt",
                         valueProviderCallback: _ => (uint)rxQueue.Count)
@@ -242,14 +82,12 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithTaggedFlag("TokenEn", 21)
                     .WithTag("DualQuad", 22, 2)
                     .WithTag("TransMode", 24, 4)  //TODO add enum feild
-                    .WithFlag(28, name: "AddrFmt",
-                        writeCallback: (_, value) => {this.InfoLog("Address phase format");})
+                    .WithTaggedFlag("AddrFmt",28)          
                     .WithFlag(29,out addressPhaseEnable, name: "AddrEn")
-                        //,writeCallback: (_, value) => {this.InfoLog("Address phase enable");})
                     .WithFlag(30,out commandPhaseEnable , name: "CmdEn")
-                        //,writeCallback: (_, value) => {this.InfoLog("Command phase enable");})
                     .WithTaggedFlag("SlvDataOnly", 31)
                 },
+
                 {(long)Registers.Command, new DoubleWordRegister(this)
                     .WithValueField(0, 8,out command, name: "CMD",
                         writeCallback: (_, value) => {
@@ -257,13 +95,11 @@ namespace Antmicro.Renode.Peripherals.SPI
                             this.InfoLog("Command enable");})
                     .WithReservedBits(8, 24)
                 },
-                 {(long)Registers.Address, new DoubleWordRegister(this)
+
+                {(long)Registers.Address, new DoubleWordRegister(this)
                     .WithValueField(0, 32,out serialFlashAddress , name: "Address")
-                       // ,writeCallback: (_, value) => {this.InfoLog("Address Register");})
                 },
-                //SPI Data Register ATC
-                //SPI FIFO Data Registers MAX
-                //TODO:rework required
+                
                 {(long)Registers.Data, new DoubleWordRegister(this)
                     .WithValueField(0, 32, name: "DATA",
                         writeCallback: (_, val) => {
@@ -296,72 +132,6 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithReservedBits(24, 8)     
                 },
       
-                /*{(long)Registers.InterruptStatusFlags, new DoubleWordRegister(this)
-                    //TX FIFO Threshold Level Crossed Flag(MAX)
-                    //TX FIFO Threshold interruptO(ATC)
-                    .WithFlag(0, out interruptTxLevelPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.tx_level")
-                    //TX FIFO Empty Flag(MAX)
-                    //Transmit FIFO Empty flag(ATC)SPI Status Register 
-                    .WithFlag(1, out interruptTxEmptyPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.tx_empty")
-                    //RX FIFO Threshold Level Crossed Flag(MAX)
-                    //RX FIFO Threshold interrupt(ATC)
-                    .WithFlag(2, out interruptRxLevelPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.rx_level")
-                    //RX FIFO Full Flag(MAX)
-                    //Receive FIFO Full flag(ATC)
-                    .WithFlag(3, out interruptRxFullPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.rx_full")
-                    .WithTaggedFlag("INT_FL.ssa", 4)
-                    .WithTaggedFlag("INT_FL.ssd", 5)
-                    .WithReservedBits(6, 2)
-                    .WithTaggedFlag("INT_FL.fault", 8)
-                    .WithTaggedFlag("INT_FL.abort", 9)
-                    .WithReservedBits(10, 1)
-                    .WithFlag(11, out interruptTransactionFinishedPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.m_done")
-                    .WithFlag(12, out interruptTxOverrunPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.tx_ovr")
-                    .WithTaggedFlag("INT_FL.tx_und", 13)
-                    .WithFlag(14, out interruptRxOverrunPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_FL.rx_ovr")
-                    .WithFlag(15, out interruptRxUnderrunPending, FieldMode.Read | FieldMode.WriteOneToClear, name: "INT_EN.rx_und")
-                    .WithReservedBits(16, 16)
-                    .WithChangeCallback((_, __) => UpdateInterrupts())
-                },
-                //SPI Interrupt Enable Register(MAX)
-                //SPI Interrupt Enable Register(ATC)
-                {(long)Registers.InterruptEnable, new DoubleWordRegister(this)
-                    //TX FIFO Threshold Level Crossed Interrupt Enable(MAX)
-                    //Enable the SPI Transmit FIFO Threshold interrupt(ATC)
-                    .WithFlag(0, out interruptTxLevelEnabled, name: "INT_EN.tx_level")
-                    .WithFlag(1, out interruptTxEmptyEnabled, name: "INT_EN.tx_empty")
-                    //RX FIFO Threshold Level Crossed Interrupt Enable(MAX)
-                    //SPI Receive FIFO Threshold interrupt(ATC)
-                    .WithFlag(2, out interruptRxLevelEnabled, name: "INT_EN.rx_level")
-                    .WithFlag(3, out interruptRxFullEnabled, name: "INT_EN.rx_full")
-                    //slave commands
-                    .WithTaggedFlag("INT_EN.ssa", 4)
-                    .WithTaggedFlag("INT_EN.ssd", 5)
-                    .WithReservedBits(6, 2)
-                    .WithTaggedFlag("INT_EN.fault", 8)
-                    .WithTaggedFlag("INT_EN.abort", 9)
-                    .WithReservedBits(10, 1)
-                    //Master Data Transmission Done Interrupt Enable(MAX)
-                    //Enable the End of SPI Transfer interrupt
-                    .WithFlag(11, out interruptTransactionFinishedEnabled, name: "INT_EN.m_done")
-                    .WithFlag(12, out interruptTxOverrunEnabled, name: "INT_EN.tx_ovr")
-                    //TX FIFO Underrun Interrupt Enable (MAX)
-                    //SPI Transmit FIFO Underrun interrupt(ATC Slave only)
-                    .WithTaggedFlag("INT_EN.tx_und", 13)
-                    //RX FIFO Overrun Interrupt Enable(MAX)
-                    // SPI Receive FIFO Overrun interrupt(ATC Slave only)
-                    .WithFlag(14, out interruptRxOverrunEnabled, name: "INT_EN.rx_ovr")
-                    //RX FIFO Underrun Interrupt Enable(MAX)
-                    .WithFlag(15, out interruptRxUnderrunEnabled, name: "INT_EN.rx_und")
-                    .WithReservedBits(16, 16)
-                    .WithChangeCallback((_, __) => UpdateInterrupts())
-                },
-                //SPI Status Registers(ATCSPI)
-                //SPI Status Registers(MAX)
-                {(long)Registers.ActiveStatus, new DoubleWordRegister(this)
-                    .WithTaggedFlag("STAT.busy", 0)
-                    .WithReservedBits(1, 31)
-                } */
 
                 {(long)Registers.Configuration, new DoubleWordRegister(this)
                     //TODO: use enum/case
@@ -383,48 +153,6 @@ namespace Antmicro.Renode.Peripherals.SPI
 
             };
 
-           /* {
-                var constructedRegister = new DoubleWordRegister(this)
-                     //SPI Control Register ATC(TXTHRES,RXTHRES)
-                    // SPI DMA Control Registers MAX(tx_fifo_level,rx_fifo_level)
-                    .WithValueField(0, 5, out txFIFOThreshold, name: "DMA.tx_fifo_level")
-                    // NOTE: 5th bit covered in if statement
-                    .WithFlag(6, out txFIFOEnabled, name: "DMA.tx_fifo_en")
-                    .WithFlag(7, FieldMode.WriteOneToClear, name: "DMA.tx_fifo_clear",
-                        writeCallback: (_, value) => { if(value) txQueue.Clear(); })
-                    //Number of Bytes in the TX FIFO(MAX)
-                    //Number of valid entries in the Transmit FIFO(ATC)
-                    .WithValueField(8, 6, FieldMode.Read, name: "DMA.tx_fifo_cnt",
-                        valueProviderCallback: _ => (uint)txQueue.Count)
-                    .WithReservedBits(14, 1)
-                     //SPI Control Register ATC
-                    // SPI DMA Control Registers MAX
-                    .WithTaggedFlag("DMA.tx_dma_en", 15)
-                    .WithValueField(16, 5, out rxFIFOThreshold, name: "DMA.rx_fifo_level")
-                    .WithReservedBits(21, 1)
-                    .WithFlag(22, out rxFIFOEnabled, name: "DMA.rx_fifo_en")
-                    .WithFlag(23, FieldMode.WriteOneToClear, name: "DMA.rx_fifo_clear",
-                        writeCallback: (_, value) => { if(value) rxQueue.Clear(); })
-                        //Number of Bytes in the RX FIFO(MAX)
-                        //Number of valid entries in the Receive FIFO(ATC)
-                    .WithValueField(24, 6, FieldMode.Read, name: "DMA.rx_fifo_cnt",
-                        valueProviderCallback: _ => (uint)rxQueue.Count)
-                    .WithReservedBits(30, 1)
-                    .WithTag("DMA.rx_dma_en", 31, 1)
-                    .WithChangeCallback((_, __) => UpdateInterrupts())
-                ;
-                // Depending on the peripheral constructor argument, treat writes to reserved field as error or don't.
-                if(hushTxFifoLevelWarnings)
-                {
-                    constructedRegister.WithFlag(5, name: "RESERVED");
-                }
-                else
-                {
-                    constructedRegister.WithReservedBits(5, 1);
-                }
-                registerMap.Add((long)Registers.DMAControl, constructedRegister);
-            }*/
-
             return registerMap;
         }
        
@@ -445,21 +173,9 @@ namespace Antmicro.Renode.Peripherals.SPI
         {
             if(!rxQueue.TryDequeue(out data))
             {
-               // receiveUnderflow.Value = true;
-               // UpdateInterrupt();
-
                 data = 0;
                 return false;
             }
-
-        
-
-          /*  if(receiveBuffer.Count <= receiveThreshold)
-            {
-                receiveFull.Value = false;
-                UpdateInterrupt();
-            }*/
-
             return true;
         }
 
@@ -468,55 +184,13 @@ namespace Antmicro.Renode.Peripherals.SPI
             if(txQueue.Count == fifoSize)
             {
                 this.Log(LogLevel.Warning, "Trying to write to a full FIFO. Dropping the data");
-                //transmitOverflow.Value = true;  TODO : invoke interrupt
-                //UpdateInterrupt();
                 return;
             }
 
             txQueue.Enqueue(val);
-
-            /*if(transmitBuffer.Count <= transmitThreshold)
-            {
-                transmitEmpty.Value = true;
-                UpdateInterrupt();
-            }*/
         }
         
-       // private void sendCommand(uint command) //uint length
-       // {  
-           // if(sizeLeft == 0)
-          //  {
-                // let's assume this is a new transfer
-               // this.Log(LogLevel.Debug, "Starting a new SPI xfer, frame size: {0} bytes", GetDataLength() / 8);
-               // sizeLeft = GetDataLength();
-               // if(command==0x02)  //write command
-               // {
-                   // while (sizeLeft != 0 )
-                   // { 
-                       // foreach(var value in txQueue)
-                        //{
-                           // RegisteredPeripheral.Transmit((byte)value);
-                           // this.InfoLog("transmit ");
-                       // }
-                       // txQueue.Clear();
-                   // }
-                   // TryFinishTransmission();
-              //  }
-                 
-               // if(command==0x03)   //read command
-              //  {
-                   
-                  //  while (sizeLeft != 0 )
-                    //{ 
-                 //       HandleByteReception();
-                    //}
-              //  }
-                
-           
-           // }
-
-        //}  
-
+      
         private void PerformTransaction(int addressWidth, int dataWidth )
         {
             if(RegisteredPeripheral == null)
@@ -544,16 +218,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 this.InfoLog("addrress is {0} , {1} , {2}", a2, a1, a0);
            }
            
-          /* for (var i=0; i < dataWidth; i++)
-           {
-            foreach(var value in txQueue)
-                {
-                    RegisteredPeripheral.Transmit((byte)value);
-                    this.InfoLog("transmit ");
-                }
-            }*/
-           
-           // RegisteredPeripheral.FinishTransmission();
+         
            // if(command.Value == 0x03)
            // {
            // lock(innerLock)
@@ -585,11 +250,6 @@ namespace Antmicro.Renode.Peripherals.SPI
         [ConnectionRegionAttribute("xip")]
         public uint XipReadDoubleWord(long offset)
         {
-           /* if(!memioEnable.Value)
-            {
-                this.Log(LogLevel.Warning, "Trying to read from XIP region at offset 0x{0:X}, but memio is disabled", offset);
-                return 0;
-            }*/
 
             return (RegisteredPeripheral as IDoubleWordPeripheral)?.ReadDoubleWord(offset) ?? 0;
         }
@@ -599,55 +259,29 @@ namespace Antmicro.Renode.Peripherals.SPI
             this.Log(LogLevel.Warning, "Trying to write 0x{0:X} to XIP region at offset 0x{1:x}. Direct writing is not supported", value, offset);
         }
 
-        private bool[] shouldDeassert;
-        private bool transactionInProgress;
-        private bool hushTxFifoLevelWarnings;
-        private uint charactersToTransmit;
-
-        private IValueRegisterField slaveSelect;
-
-        private IFlagRegisterField rxFIFOEnabled;
-        private IFlagRegisterField txFIFOEnabled;
-
+       
+        private IValueRegisterField dataLength;  
+        private IValueRegisterField command; 
+        private IValueRegisterField serialFlashAddress; 
+        private IValueRegisterField addressLength;
         private IValueRegisterField rxFIFOThreshold;
         private IValueRegisterField txFIFOThreshold;
-        private IValueRegisterField dataLength;  //updated
-        private IValueRegisterField command; //updated
-        private IValueRegisterField serialFlashAddress; //updated
-         private IValueRegisterField addressLength;
-
-        private IFlagRegisterField interruptTxLevelPending;
-        private IFlagRegisterField interruptTxEmptyPending;
-        private IFlagRegisterField interruptRxLevelPending;
-        private IFlagRegisterField interruptRxFullPending;
-        private IFlagRegisterField interruptTransactionFinishedPending;
-        private IFlagRegisterField interruptTxOverrunPending;
-        private IFlagRegisterField interruptRxOverrunPending;
-        private IFlagRegisterField interruptRxUnderrunPending;
-        private IFlagRegisterField commandPhaseEnable; //updated
+        
+        private IFlagRegisterField commandPhaseEnable; 
         private IFlagRegisterField addressPhaseEnable;
 
-        private IFlagRegisterField interruptTxLevelEnabled;
-        private IFlagRegisterField interruptTxEmptyEnabled;
-        private IFlagRegisterField interruptRxLevelEnabled;
-        private IFlagRegisterField interruptRxFullEnabled;
-        private IFlagRegisterField interruptTransactionFinishedEnabled;
-        private IFlagRegisterField interruptTxOverrunEnabled;
-        private IFlagRegisterField interruptRxOverrunEnabled;
-        private IFlagRegisterField interruptRxUnderrunEnabled;
-        
-        private readonly uint fifoSize;   //updated
-        private uint sizeLeft;  //updated
+        private readonly uint fifoSize;   
+        private uint sizeLeft;  
         private const int FIFODataWidth = 0x04;
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;
    
-        private readonly Queue<uint> rxQueue;  //updated
-        private readonly Queue<uint> txQueue;  //updated
+        private readonly Queue<uint> rxQueue;  
+        private readonly Queue<uint> txQueue;  
         private readonly DoubleWordRegisterCollection registers;
 
         private const byte DummyResponseByte = 0xFF;
-        private readonly object innerLock = new object();//updated
+        private readonly object innerLock = new object();
 
         private enum Registers : long
         {
@@ -689,10 +323,5 @@ namespace Antmicro.Renode.Peripherals.SPI
                       //receivebuffer count , transmitbuffer count (Designware)
                       //read count,write count  , dummy missing (ATCSPI
                        
-//MPFS                     slave commands
 
-//Questions
-//memory mapped interface?
-//genericspiflash  Addressing/dummy bytes idea?
-//datalength maximum =32
-//SPI command register(encoding commands):come from flash
+
