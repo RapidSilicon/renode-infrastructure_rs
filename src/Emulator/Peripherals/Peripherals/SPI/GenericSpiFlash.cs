@@ -316,7 +316,8 @@ namespace Antmicro.Renode.Peripherals.SPI
                     break;
                 case (byte)Commands.BulkErase:
                 case (byte)Commands.ChipErase:
-                    this.Log(LogLevel.Noisy, "Performing bulk/chip erase");
+                   // this.Log(LogLevel.Noisy, "Performing bulk/chip erase");
+                    this.InfoLog("Performing bulk/chip erase");
                     EraseChip();
                     break;
                 case (byte)Commands.SubsectorErase4byte4kb:
@@ -597,6 +598,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 this.Log(LogLevel.Error, "Chip erase can only be performed when there is no locked range");
                 return;
             }
+            this.InfoLog("Chip Erase Function");
             underlyingMemory.ZeroAll();
         }
 

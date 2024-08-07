@@ -32,6 +32,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         public override void Reset()
         { 
             registers.Reset();
+            rxQueue.Clear();
+            txQueue.Clear();
         }
 
         public uint ReadDoubleWord(long address)
@@ -57,54 +59,52 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithTaggedFlag("CPHA", 0)
                     .WithTaggedFlag("CPOL", 1)
                     .WithTaggedFlag("SlvMode", 2)
-                    .WithTaggedFlag("LSB", 3)
+                    .WithFlag(3,out leastSignificantByteFirst,name:"LSB")
                     .WithTaggedFlag("MOSIBiDir", 4)
                     .WithReservedBits(5, 2)
-                    .WithFlag(7, name: "DataMerge",
-                        writeCallback: (_, value) => {this.InfoLog("Data Merge feild");})
-                    .WithValueField(8, 5,out dataLength, name: "DataLen")
-                       //, writeCallback: (_, value) => {this.InfoLog("Data Length");})
+                    .WithFlag(7,out dataMerge,FieldMode.Read | FieldMode.Write, name: "DataMerge")
+                    .WithValueField(8, 5,out dataLength,FieldMode.Read | FieldMode.Write, name: "DataLen")
                     .WithReservedBits(13, 3)
-                    .WithValueField(16, 2,out addressLength, name: "AddrLen")
-                       //, writeCallback: (_, value) => {this.InfoLog("Address Length");})
+                    .WithEnumField<DoubleWordRegister, AddressLength>(16, 2,out addressLength,FieldMode.Read | FieldMode.Write, name: "AddrLen")
                     .WithReservedBits(18, 14)
                      
                 }, 
 
                 {(long)Registers.TransferControl, new DoubleWordRegister(this)
-                    .WithValueField(0, 8,FieldMode.Read, name: "RdTranCnt",
-                        valueProviderCallback: _ => (uint)rxQueue.Count)
-                    .WithValueField(9, 2, name: "DummyCnt",
-                        writeCallback: (_, value) => {this.InfoLog("Dummy data count");})
-                    .WithTaggedFlag("TokenValue", 11)
-                    .WithValueField(12, 9, name: "WrTranCnt",
-                        writeCallback: (_, value) => {this.InfoLog("Transfer count for write data");})
-                    .WithTaggedFlag("TokenEn", 21)
-                    .WithTag("DualQuad", 22, 2)
-                    .WithTag("TransMode", 24, 4)  //TODO add enum feild
-                    .WithTaggedFlag("AddrFmt",28)          
-                    .WithFlag(29,out addressPhaseEnable, name: "AddrEn")
-                    .WithFlag(30,out commandPhaseEnable , name: "CmdEn")
+                    .WithValueField(0, 8,out readCount, FieldMode.Read | FieldMode.Write, name: "RdTranCnt")
+                    .WithValueField(9, 2,out dummyCount,FieldMode.Read | FieldMode.Write,name: "DummyCnt")
+                    .WithFlag( 11,out tokenValue,name:"TokenValue")
+                    .WithValueField(12, 9,out writeCount,FieldMode.Read | FieldMode.Write, name: "WrTranCnt")
+                    .WithFlag(21,out tokenEn,name:"TokenEn")
+                    .WithEnumField<DoubleWordRegister, DualQuad>(22, 2, out dualQuad, name: "DualQuad")
+                    .WithEnumField<DoubleWordRegister, TransferMode>(24, 4, out transferMode, name: "TransMode")
+                    .WithFlag(28,out addressformat, FieldMode.Read | FieldMode.Write,name:"AddrFmt")          
+                    .WithFlag(29,out addressPhaseEnable, FieldMode.Read | FieldMode.Write, name: "AddrEn")
+                    .WithFlag(30,out commandPhaseEnable, FieldMode.Read |FieldMode.Write, name: "CmdEn")
                     .WithTaggedFlag("SlvDataOnly", 31)
                 },
 
                 {(long)Registers.Command, new DoubleWordRegister(this)
-                    .WithValueField(0, 8,out command, name: "CMD",
-                        writeCallback: (_, value) => {
-                        PerformTransaction((int)addressLength.Value, (int)dataLength.Value);
-                            this.InfoLog("Command enable");})
+                    .WithValueField(0, 8,out command, FieldMode.Read |FieldMode.Write,name: "CMD")
                     .WithReservedBits(8, 24)
+                    .WithWriteCallback((_, __) => {
+                    TrySendData();})
+                    
                 },
 
                 {(long)Registers.Address, new DoubleWordRegister(this)
-                    .WithValueField(0, 32,out serialFlashAddress , name: "Address")
+                    .WithValueField(0, 32,out serialFlashAddress ,FieldMode.Read |FieldMode.Write, name: "Address")
                 },
                 
                 {(long)Registers.Data, new DoubleWordRegister(this)
-                    .WithValueField(0, 32, name: "DATA",
+                    .WithValueField(0, 32,FieldMode.Read |FieldMode.Write, name: "DATA",
                         writeCallback: (_, val) => {
-                            EnqueueToTransmitBuffer((uint)val);  //byte/ushort/uint
-                           },
+                            txQueue.Enqueue((uint)val); 
+                           this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val))); 
+                            this.InfoLog("transmit buffer count are {0}",txQueue.Count); 
+                           }
+                       
+                           ,
                        valueProviderCallback: _ =>
                     {   
                         if(!TryDequeueFromReceiveBuffer(out var data))
@@ -119,11 +119,17 @@ namespace Antmicro.Renode.Peripherals.SPI
                 },     
                 {(long)Registers.Control, new DoubleWordRegister(this)
                     .WithFlag(0, name: "SPIRST",
-                        writeCallback: (_, value) => {this.InfoLog("SPI reset");})
-                    .WithFlag(1, name: "RXFIFORST",
-                        writeCallback: (_, value) => {this.InfoLog("Receive FIFO reset");})
-                    .WithFlag(2, name: "TXFIFORST",
-                        writeCallback: (_, value) => {this.InfoLog("Transmit FIFO reset");})
+                        changeCallback: (_, value) => 
+                        {  if(value)
+                            {
+                            this.Log(LogLevel.Debug, "Software Reset requested by writing RST to the Control Register");
+                            Reset();
+                            }
+                        })
+                    .WithFlag(1, FieldMode.Read |FieldMode.Write,name: "RXFIFORST",
+                        writeCallback: (_, value) => {if(value) rxQueue.Clear();})
+                    .WithFlag(2, FieldMode.Read |FieldMode.Write,name: "TXFIFORST",
+                        writeCallback: (_, value) => {if(value) txQueue.Clear();})
                     .WithTaggedFlag("RXDMAEN",3)
                     .WithTaggedFlag("TXDMAEN",4)
                     .WithReservedBits(5, 3)
@@ -131,15 +137,28 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithValueField(16, 5, out txFIFOThreshold, name: "TXTHRES")
                     .WithReservedBits(24, 8)     
                 },
-      
+                
+               {(long)Registers.Status, new DoubleWordRegister(this)
+                    .WithFlag(0,FieldMode.Read, name : "SPIActive")
+                    .WithReservedBits(1, 7)
+                    .WithValueField(8, 6, name: "RXNUM")
+                    .WithFlag(14,FieldMode.Read, name :"RXEMPTY")
+                    .WithFlag(15,FieldMode.Read,name :"RXFULL",valueProviderCallback: (_) => rxQueue.Count == fifoSize )
+                    .WithValueField(16, 6, name: "TXNUM")
+                    .WithFlag(22,FieldMode.Read, name:"TXEMPTY",valueProviderCallback: (_) => txQueue.Count == 0)
+                    .WithFlag(23,FieldMode.Read,name:"TXFULL",valueProviderCallback: (_) => txQueue.Count == fifoSize)
+                    .WithValueField(24, 2, name: "RXNUM1")
+                    .WithReservedBits(26, 2)
+                    .WithValueField(28, 2, name: "TXNUM1")
+                    .WithReservedBits(30, 2)     
+                },
 
                 {(long)Registers.Configuration, new DoubleWordRegister(this)
-                    //TODO: use enum/case
-                    .WithValueField(0, 4, FieldMode.Read, name: "RXFIFO - Receive FIFO Size (in words; size = 2^RXFIFO)",
-                    valueProviderCallback: _ => (ulong)Misc.Logarithm2((int)fifoSize)
+                    .WithValueField(0, 4,FieldMode.Read, name: "RXFIFO - Receive FIFO Size (in words; size = 2^RXFIFO)"
+                    ,valueProviderCallback: _ => (ulong)Misc.Logarithm2((int)fifoSize)
                     )
-                    .WithValueField(4, 4, FieldMode.Read, name: "TXFIFO - Transmit FIFO Size (in words; size = 2^TXFIFO)",
-                    valueProviderCallback: _ => (ulong)Misc.Logarithm2((int)fifoSize)
+                    .WithValueField(4, 4, FieldMode.Read, name: "TXFIFO - Transmit FIFO Size (in words; size = 2^TXFIFO)"
+                    ,valueProviderCallback: _ => (ulong)Misc.Logarithm2((int)fifoSize)
                     )
                     .WithTaggedFlag("DUALSPI", 8)
                     .WithTaggedFlag("QUADSPI", 9)
@@ -155,19 +174,7 @@ namespace Antmicro.Renode.Peripherals.SPI
 
             return registerMap;
         }
-       
-        /*private uint GetDataLength()
-        {
-            // frameSize keeps value substracted by 1
-            var sizeLeft = (uint)dataLength.Value + 1;
-            if(sizeLeft % 8 != 0)
-            {
-                sizeLeft += 8 - (sizeLeft % 8);
-                this.Log(LogLevel.Warning, "Only 8-bit-aligned transfers are currently supported, but data length is set to {0}, adjusting it to: {1}", dataLength.Value, sizeLeft);
-            }
 
-            return sizeLeft;
-        }*/
         
          public bool TryDequeueFromReceiveBuffer(out uint data)
         {
@@ -188,17 +195,22 @@ namespace Antmicro.Renode.Peripherals.SPI
             }
 
             txQueue.Enqueue(val);
+            this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val)));  
         }
         
-      
-        private void PerformTransaction(int addressWidth, int dataWidth )
-        {
+        private void PerformTransaction(int size,bool readFromFifo,bool writeToFifo)
+        {  
+            var byteCount = (int)dataLength.Value / 8 + 1;
+            var bytes = new byte[MaxPacketBytes];
+            var reverseBytes = BitConverter.IsLittleEndian; 
+            var bytesfromslave = ((int)readCount.Value + 1) *(byteCount);
+
             if(RegisteredPeripheral == null)
             {
                 this.ErrorLog("Attempted to perform a UMA transaction with no peripheral attached");
                 return;
             }
-            
+           
             if(commandPhaseEnable.Value)
             {
                 RegisteredPeripheral.Transmit((byte)command.Value);
@@ -217,22 +229,71 @@ namespace Antmicro.Renode.Peripherals.SPI
 
                 this.InfoLog("addrress is {0} , {1} , {2}", a2, a1, a0);
            }
-           
-         
-           // if(command.Value == 0x03)
-           // {
-           // lock(innerLock)
-           // {
-            for (var i = 0; i < 8; i++)
+          if (readFromFifo){
+          
+          while(txQueue.Count!=0)
+          {
+            var value = txQueue.Dequeue();
+            BitHelper.GetBytesFromValue(bytes, 0, value, byteCount, reverseBytes);
+            for(var i = 0; i < byteCount; i++)
+                {   
+                    
+                    bytes[i] = RegisteredPeripheral.Transmit(bytes[i]);
+                    this.InfoLog("values in transmit loop {0}", bytes[i]);
+                }
+            rxQueue.Enqueue(BitHelper.ToUInt32(bytes, 0, byteCount, reverseBytes));
+          }
+          txQueue.Clear();
+
+        }
+
+        else 
+        {
+            for (var i=0; i<=bytesfromslave; i++)
             {
-              HandleByteReception();
+                HandleByteReception();
             }
-            this.InfoLog(" command value is {0}", command.Value);
-            TryFinishTransmission();
-           // }
-           // }
+        
+        }
+
+
+         TryFinishTransmission();
                      
         }
+
+
+         private void TrySendData(){
+            switch(transferMode.Value){
+
+                case TransferMode.WriteRead:
+                    PerformTransaction(txQueue.Count, readFromFifo: true, writeToFifo: true);
+                    this.InfoLog("Write Read");
+                    break;
+                case TransferMode.Write:
+                    if (command.Value == 0x02)
+                    {
+                    PerformTransaction(txQueue.Count,readFromFifo: true, writeToFifo: false);
+                    this.InfoLog("Write");
+                    }
+                     
+                    if(command.Value==0xD8)
+                    {
+                        this.InfoLog("Erase");
+                    }
+
+                    break;
+                case TransferMode.Read:
+                    PerformTransaction(rxQueue.Count,readFromFifo: false, writeToFifo: true);
+                    this.InfoLog("Read");
+                    break;
+                default:
+                    PerformTransaction(txQueue.Count,readFromFifo: true, writeToFifo: true);
+                    this.InfoLog("Send data by default");
+                    break;
+            }
+
+        }
+        
         private void HandleByteReception()
         {
             var receivedByte = RegisteredPeripheral.Transmit(0);
@@ -242,46 +303,75 @@ namespace Antmicro.Renode.Peripherals.SPI
 
          private void TryFinishTransmission()
         {
-            //TODO: put conditions
             RegisteredPeripheral.FinishTransmission();
             
-        }
-        
-        [ConnectionRegionAttribute("xip")]
-        public uint XipReadDoubleWord(long offset)
-        {
-
-            return (RegisteredPeripheral as IDoubleWordPeripheral)?.ReadDoubleWord(offset) ?? 0;
-        }
-        [ConnectionRegionAttribute("xip")]
-        public void XipWriteDoubleWord(long offset, uint value)
-        {
-            this.Log(LogLevel.Warning, "Trying to write 0x{0:X} to XIP region at offset 0x{1:x}. Direct writing is not supported", value, offset);
         }
 
        
         private IValueRegisterField dataLength;  
         private IValueRegisterField command; 
         private IValueRegisterField serialFlashAddress; 
-        private IValueRegisterField addressLength;
+        
         private IValueRegisterField rxFIFOThreshold;
         private IValueRegisterField txFIFOThreshold;
-        
+        private IValueRegisterField writeCount;
+        private IValueRegisterField readCount;
+        private IValueRegisterField dummyCount;
+    
         private IFlagRegisterField commandPhaseEnable; 
         private IFlagRegisterField addressPhaseEnable;
+        private IFlagRegisterField addressformat;
+        private IFlagRegisterField leastSignificantByteFirst;
+        private IFlagRegisterField dataMerge;
+        private IFlagRegisterField tokenEn;
+        private IFlagRegisterField tokenValue;
+
+        private IEnumRegisterField<AddressLength> addressLength;
+        private IEnumRegisterField<TransferMode> transferMode;
+         private IEnumRegisterField<DualQuad> dualQuad;
+
 
         private readonly uint fifoSize;   
         private uint sizeLeft;  
         private const int FIFODataWidth = 0x04;
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;
-   
+        private const int MaxPacketBytes = 4;
+
         private readonly Queue<uint> rxQueue;  
         private readonly Queue<uint> txQueue;  
         private readonly DoubleWordRegisterCollection registers;
-
-        private const byte DummyResponseByte = 0xFF;
         private readonly object innerLock = new object();
+
+        private enum AddressLength
+        { 
+            oneByte = 0,
+            twoByte = 1,
+            threeByte = 2,
+            fourByte = 3
+        }
+
+          private enum TransferMode
+        {
+            WriteRead = 0,
+            Write = 1,
+            Read = 2,
+            WriteandRead = 3,
+            ReadandWrite = 4,
+            WriteDummyRead = 5,
+            ReadDummyWrite = 6,
+            NoneData = 7,
+            DummyWrite = 8,
+            DummyRead =9 
+        }
+      
+       private enum DualQuad
+       {
+        Regular = 0,
+        Dual = 1,
+        Quad = 2,
+        Reserved = 3
+       }
 
         private enum Registers : long
         {
@@ -299,29 +389,22 @@ namespace Antmicro.Renode.Peripherals.SPI
             MemoryAccessControl = 0x50,
             SlaveStatus = 0x60,
             SlaveDataCount = 0x64,
-            Configuration = 0x7C  //done
+            Configuration = 0x7C 
 
         }
     }
 }
 
-//IMXRT_LPSPI.cs         TXFIFORST ,RXFIFORST -Reset fields (SPI Control Register)
-                        //fifosize (LPSPI)
-                        //fifodepth(ATCSPI)
-
-                        //framesize(LPSPI)
-                        //datalength(atcspi)
-                         //wordcount
-
-//DesignWareSPI        //Transfermode(Designware) transmit/receive
-                       //Transfermode(ATCSPI) readwrite
                        
-                      //transfer size /framesize,no of frames (Designware)
-                      //datalength(ATC)
-
-                      //Data register
-                      //receivebuffer count , transmitbuffer count (Designware)
-                      //read count,write count  , dummy missing (ATCSPI
-                       
+ 
+/*(Virgo) spi.Flash1 Transmit 0x06
+0x00
+(Virgo) spi.Flash1 FinishTransmission
+(Virgo) sysbus.spi WriteDoubleWord 0x28 0x000000
+(Virgo) sysbus.spi WriteDoubleWord 0x20 0x60000000
+(Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
+(Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
+(Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
+(Virgo) sysbus.spi WriteDoubleWord 0x24 0x02*/
 
 
