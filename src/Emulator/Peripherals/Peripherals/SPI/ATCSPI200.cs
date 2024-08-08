@@ -102,6 +102,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                             txQueue.Enqueue((uint)val); 
                            this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val))); 
                             this.InfoLog("transmit buffer count are {0}",txQueue.Count); 
+                            
                            }
                        
                            ,
