@@ -34,6 +34,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             registers.Reset();
             rxQueue.Clear();
             txQueue.Clear();
+            transactionInProgress = false;
         }
 
         public uint ReadDoubleWord(long address)
@@ -202,8 +203,6 @@ namespace Antmicro.Renode.Peripherals.SPI
         private void PerformTransaction(int size,bool readFromFifo,bool writeToFifo)
         {  
             var byteCount = (int)dataLength.Value / 8 + 1;
-            var bytes = new byte[MaxPacketBytes];
-            var reverseBytes = BitConverter.IsLittleEndian; 
             var bytesfromslave = ((int)readCount.Value + 1) *(byteCount);
 
             if(RegisteredPeripheral == null)
@@ -232,20 +231,7 @@ namespace Antmicro.Renode.Peripherals.SPI
            }
           if (readFromFifo){
           
-          while(txQueue.Count!=0)
-          {
-            var value = txQueue.Dequeue();
-            BitHelper.GetBytesFromValue(bytes, 0, value, byteCount, reverseBytes);
-            for(var i = 0; i < byteCount; i++)
-                {   
-                    
-                    bytes[i] = RegisteredPeripheral.Transmit(bytes[i]);
-                    this.InfoLog("values in transmit loop {0}", bytes[i]);
-                }
-            rxQueue.Enqueue(BitHelper.ToUInt32(bytes, 0, byteCount, reverseBytes));
-          }
-          txQueue.Clear();
-
+          HandleByteTransmission();
         }
 
         else 
@@ -294,6 +280,30 @@ namespace Antmicro.Renode.Peripherals.SPI
             }
 
         }
+
+        private void HandleByteTransmission(){
+
+            var byteCount = (int)dataLength.Value / 8 + 1;
+            var bytes = new byte[MaxPacketBytes];
+            var reverseBytes = BitConverter.IsLittleEndian; 
+
+            while(txQueue.Count!=0)
+          {
+            var value = txQueue.Dequeue();
+            BitHelper.GetBytesFromValue(bytes, 0, value, byteCount, reverseBytes);
+            for(var i = 0; i < byteCount; i++)
+                {   
+                    
+                    bytes[i] = RegisteredPeripheral.Transmit(bytes[i]);
+                    this.InfoLog("values in transmit loop {0}", bytes[i]);
+                }
+            rxQueue.Enqueue(BitHelper.ToUInt32(bytes, 0, byteCount, reverseBytes));
+          }
+          txQueue.Clear();
+
+
+
+        }
         
         private void HandleByteReception()
         {
@@ -338,6 +348,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;
         private const int MaxPacketBytes = 4;
+         private bool transactionInProgress;
 
         private readonly Queue<uint> rxQueue;  
         private readonly Queue<uint> txQueue;  
@@ -407,5 +418,3 @@ namespace Antmicro.Renode.Peripherals.SPI
 (Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
 (Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
 (Virgo) sysbus.spi WriteDoubleWord 0x24 0x02*/
-
-
