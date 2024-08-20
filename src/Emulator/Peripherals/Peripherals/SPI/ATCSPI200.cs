@@ -86,9 +86,9 @@ namespace Antmicro.Renode.Peripherals.SPI
                 },
 
                 {(long)Registers.Command, new DoubleWordRegister(this)
-                    .WithValueField(0, 8,out command, FieldMode.Read |FieldMode.Write,name: "CMD")
+                    .WithValueField(0, 8,out command, FieldMode.Read |FieldMode.Write,name: "CMD",writeCallback: (_,__) => {transactionInProgress=true;})
                     .WithReservedBits(8, 24)
-                    .WithWriteCallback((_, __) => {
+                    .WithChangeCallback((_, __) => {
                     TrySendData();})
                     
                 },
@@ -100,7 +100,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 {(long)Registers.Data, new DoubleWordRegister(this)
                     .WithValueField(0, 32,FieldMode.Read |FieldMode.Write, name: "DATA",
                         writeCallback: (_, val) => {
-                            txQueue.Enqueue((uint)val); 
+                            EnqueueToTransmitBuffer((uint)val);      
                            this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val))); 
                             this.InfoLog("transmit buffer count are {0}",txQueue.Count); 
                             
@@ -117,6 +117,7 @@ namespace Antmicro.Renode.Peripherals.SPI
 
                         return data;
                     })
+
                     
                 },     
                 {(long)Registers.Control, new DoubleWordRegister(this)
@@ -141,14 +142,22 @@ namespace Antmicro.Renode.Peripherals.SPI
                 },
                 
                {(long)Registers.Status, new DoubleWordRegister(this)
-                    .WithFlag(0,FieldMode.Read, name : "SPIActive")
+                    .WithFlag(0,FieldMode.Read, name : "SPIActive",valueProviderCallback: (_) => {return transactionInProgress;})
                     .WithReservedBits(1, 7)
                     .WithValueField(8, 6, name: "RXNUM")
                     .WithFlag(14,FieldMode.Read, name :"RXEMPTY")
                     .WithFlag(15,FieldMode.Read,name :"RXFULL",valueProviderCallback: (_) => rxQueue.Count == fifoSize )
                     .WithValueField(16, 6, name: "TXNUM")
                     .WithFlag(22,FieldMode.Read, name:"TXEMPTY",valueProviderCallback: (_) => txQueue.Count == 0)
-                    .WithFlag(23,FieldMode.Read,name:"TXFULL",valueProviderCallback: (_) => txQueue.Count == fifoSize)
+                    .WithFlag(23,FieldMode.Read,name:"TXFULL",valueProviderCallback: (_) =>
+                    
+                    { if(txQueue.Count == fifoSize)
+                        {
+                            txFull=true;
+                        }
+                      return txFull;
+
+                    })
                     .WithValueField(24, 2, name: "RXNUM1")
                     .WithReservedBits(26, 2)
                     .WithValueField(28, 2, name: "TXNUM1")
@@ -170,6 +179,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithTaggedFlag("EILMMem", 13)
                     .WithTaggedFlag("SLAVE", 14)
                     .WithReservedBits(15, 17)   
+                    
                 }
 
             };
@@ -315,6 +325,7 @@ namespace Antmicro.Renode.Peripherals.SPI
          private void TryFinishTransmission()
         {
             RegisteredPeripheral.FinishTransmission();
+            transactionInProgress = false;
             
         }
 
@@ -336,6 +347,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         private IFlagRegisterField dataMerge;
         private IFlagRegisterField tokenEn;
         private IFlagRegisterField tokenValue;
+        
+
 
         private IEnumRegisterField<AddressLength> addressLength;
         private IEnumRegisterField<TransferMode> transferMode;
@@ -348,7 +361,9 @@ namespace Antmicro.Renode.Peripherals.SPI
         private const int FIFOLength = 32;
         private const int MaximumNumberOfSlaves = 4;
         private const int MaxPacketBytes = 4;
-         private bool transactionInProgress;
+        private bool transactionInProgress;
+        private bool txFull = false;
+
 
         private readonly Queue<uint> rxQueue;  
         private readonly Queue<uint> txQueue;  
