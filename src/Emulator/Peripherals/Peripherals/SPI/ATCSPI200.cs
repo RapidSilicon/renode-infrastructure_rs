@@ -75,7 +75,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithValueField(0, 8,out readCount, FieldMode.Read | FieldMode.Write, name: "RdTranCnt")
                     .WithValueField(9, 2,out dummyCount,FieldMode.Read | FieldMode.Write,name: "DummyCnt")
                     .WithFlag( 11,out tokenValue,name:"TokenValue")
-                    .WithValueField(12, 9,out writeCount,FieldMode.Read | FieldMode.Write, name: "WrTranCnt")
+                    .WithValueField(12, 9,out writeCount,FieldMode.Read | FieldMode.Write, name: "WrTranCnt",writeCallback: (_,__) =>{this.InfoLog("Write counts are {0}", writeCount.Value+1);})
                     .WithFlag(21,out tokenEn,name:"TokenEn")
                     .WithEnumField<DoubleWordRegister, DualQuad>(22, 2, out dualQuad, name: "DualQuad")
                     .WithEnumField<DoubleWordRegister, TransferMode>(24, 4, out transferMode, name: "TransMode")
@@ -207,7 +207,12 @@ namespace Antmicro.Renode.Peripherals.SPI
             }
 
             txQueue.Enqueue(val);
-            this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val)));  
+            this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val))); 
+
+            if((uint)txQueue.Count == (uint)writeCount.Value+1) 
+            {
+                HandleByteTransmission();
+            }
         }
         
         private void PerformTransaction(int size,bool readFromFifo,bool writeToFifo)
@@ -239,22 +244,25 @@ namespace Antmicro.Renode.Peripherals.SPI
 
                 this.InfoLog("addrress is {0} , {1} , {2}", a2, a1, a0);
            }
-          if (readFromFifo){
+        if (readFromFifo){
           
-          HandleByteTransmission();
+          this.InfoLog("read from fifo");
         }
 
-        else 
+        else if(writeToFifo)
         {
             for (var i=0; i<=bytesfromslave; i++)
             {
                 HandleByteReception();
+                
             }
-        
+        transactionInProgress = false;
+        RegisteredPeripheral.FinishTransmission();
         }
 
-
+        
          TryFinishTransmission();
+        
                      
         }
 
@@ -310,7 +318,8 @@ namespace Antmicro.Renode.Peripherals.SPI
             rxQueue.Enqueue(BitHelper.ToUInt32(bytes, 0, byteCount, reverseBytes));
           }
           txQueue.Clear();
-
+          transactionInProgress=false;
+          RegisteredPeripheral.FinishTransmission();
 
 
         }
@@ -323,9 +332,14 @@ namespace Antmicro.Renode.Peripherals.SPI
         }
 
          private void TryFinishTransmission()
-        {
-            RegisteredPeripheral.FinishTransmission();
+        {   
+            if (transferMode.Value == TransferMode.Write || transferMode.Value ==TransferMode.Read)
+            {
+                return;
+            }
             transactionInProgress = false;
+            RegisteredPeripheral.FinishTransmission();
+       
             
         }
 
