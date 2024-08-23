@@ -75,7 +75,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithValueField(0, 8,out readCount, FieldMode.Read | FieldMode.Write, name: "RdTranCnt")
                     .WithValueField(9, 2,out dummyCount,FieldMode.Read | FieldMode.Write,name: "DummyCnt")
                     .WithFlag( 11,out tokenValue,name:"TokenValue")
-                    .WithValueField(12, 9,out writeCount,FieldMode.Read | FieldMode.Write, name: "WrTranCnt",writeCallback: (_,__) =>{this.InfoLog("Write counts are {0}", writeCount.Value+1);})
+                    .WithValueField(12, 9,out writeCount,FieldMode.Read | FieldMode.Write, name: "WrTranCnt")//,writeCallback: (_,__) =>{this.InfoLog("Write counts are {0}", writeCount.Value+1);})
                     .WithFlag(21,out tokenEn,name:"TokenEn")
                     .WithEnumField<DoubleWordRegister, DualQuad>(22, 2, out dualQuad, name: "DualQuad")
                     .WithEnumField<DoubleWordRegister, TransferMode>(24, 4, out transferMode, name: "TransMode")
@@ -83,6 +83,11 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithFlag(29,out addressPhaseEnable, FieldMode.Read | FieldMode.Write, name: "AddrEn")
                     .WithFlag(30,out commandPhaseEnable, FieldMode.Read |FieldMode.Write, name: "CmdEn")
                     .WithTaggedFlag("SlvDataOnly", 31)
+                    .WithWriteCallback((_, __) => {
+                     var byteCount = (int)dataLength.Value / 8 + 1;
+                      bytestoTransfer = ((int)(writeCount.Value+1))* (byteCount);
+                       this.InfoLog(" in register bytes to Transfer are  {0}, write count{1},  byte count {2}", bytestoTransfer,writeCount.Value+1, byteCount);
+                    })
                 },
 
                 {(long)Registers.Command, new DoubleWordRegister(this)
@@ -209,7 +214,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             txQueue.Enqueue(val);
             this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val))); 
 
-            if((uint)txQueue.Count == (uint)writeCount.Value+1) 
+            if((uint)txQueue.Count == (uint)writeCount.Value+1 || (transactionInProgress && txQueue.Count == fifoSize) )
             {
                 HandleByteTransmission();
             }
@@ -251,7 +256,8 @@ namespace Antmicro.Renode.Peripherals.SPI
 
         else if(writeToFifo)
         {
-            for (var i=0; i<=bytesfromslave; i++)
+            //for (var i=0; i<=bytesfromslave; i++)
+            for (var i=0; i<=16; i++)
             {
                 HandleByteReception();
                 
@@ -305,6 +311,8 @@ namespace Antmicro.Renode.Peripherals.SPI
             var bytes = new byte[MaxPacketBytes];
             var reverseBytes = BitConverter.IsLittleEndian; 
 
+          bytestoTransfer = bytestoTransfer - (int)txQueue.Count;
+            this.InfoLog("bytes to Transfer are  {0}, queue count{1}, write count{2}", bytestoTransfer,txQueue.Count,writeCount.Value+1);
             while(txQueue.Count!=0)
           {
             var value = txQueue.Dequeue();
@@ -318,6 +326,10 @@ namespace Antmicro.Renode.Peripherals.SPI
             rxQueue.Enqueue(BitHelper.ToUInt32(bytes, 0, byteCount, reverseBytes));
           }
           txQueue.Clear();
+
+          if(bytestoTransfer!=0){
+            return;
+          }
           transactionInProgress=false;
           RegisteredPeripheral.FinishTransmission();
 
@@ -333,9 +345,10 @@ namespace Antmicro.Renode.Peripherals.SPI
 
          private void TryFinishTransmission()
         {   
-            if (transferMode.Value == TransferMode.Write || transferMode.Value ==TransferMode.Read)
+            if ( transferMode.Value == TransferMode.Write || transferMode.Value ==TransferMode.Read)
             {
-                return;
+                 this.InfoLog("return from TryFinishtransmission");
+                 return;
             }
             transactionInProgress = false;
             RegisteredPeripheral.FinishTransmission();
@@ -377,6 +390,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         private const int MaxPacketBytes = 4;
         private bool transactionInProgress;
         private bool txFull = false;
+        private int bytestoTransfer;
 
 
         private readonly Queue<uint> rxQueue;  
