@@ -87,6 +87,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                      var byteCount = (int)dataLength.Value / 8 + 1;
                       bytestoTransfer = ((int)(writeCount.Value+1))* (byteCount);
                        this.InfoLog(" in register bytes to Transfer are  {0}, write count{1},  byte count {2}", bytestoTransfer,writeCount.Value+1, byteCount);
+                       this.InfoLog ("readcounts are {0}", readCount.Value+1);
                     })
                 },
 
@@ -223,7 +224,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         private void PerformTransaction(int size,bool readFromFifo,bool writeToFifo)
         {  
             var byteCount = (int)dataLength.Value / 8 + 1;
-            var bytesfromslave = ((int)readCount.Value + 1) *(byteCount);
+            var bytesfromslave = ((int)readCount.Value+1 ) *(byteCount);
 
             if(RegisteredPeripheral == null)
             {
@@ -257,8 +258,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         else if(writeToFifo)
         {
             //for (var i=0; i<=bytesfromslave; i++)
-            for (var i=0; i<=16; i++)
-            {
+           while((uint)rxQueue.Count!= (uint)readCount.Value+1)
+           {
                 HandleByteReception();
                 
             }
