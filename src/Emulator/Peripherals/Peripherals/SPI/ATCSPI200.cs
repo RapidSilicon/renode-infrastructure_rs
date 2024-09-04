@@ -60,7 +60,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithTaggedFlag("CPHA", 0)
                     .WithTaggedFlag("CPOL", 1)
                     .WithTaggedFlag("SlvMode", 2)
-                    .WithFlag(3,out leastSignificantByteFirst,name:"LSB")
+                    .WithFlag(3,out leastSignificantBitFirst,name:"LSB")
                     .WithTaggedFlag("MOSIBiDir", 4)
                     .WithReservedBits(5, 2)
                     .WithFlag(7,out dataMerge,FieldMode.Read | FieldMode.Write, name: "DataMerge")
@@ -74,31 +74,27 @@ namespace Antmicro.Renode.Peripherals.SPI
                 {(long)Registers.TransferControl, new DoubleWordRegister(this)
                     .WithValueField(0, 9,out readCount, FieldMode.Read | FieldMode.Write, name: "RdTranCnt")
                     .WithValueField(9, 2,out dummyCount,FieldMode.Read | FieldMode.Write,name: "DummyCnt")
-                    .WithFlag( 11,out tokenValue,name:"TokenValue")
+                    .WithTaggedFlag("TokenValue", 11)
                     .WithValueField(12, 9,out writeCount,FieldMode.Read | FieldMode.Write, name: "WrTranCnt")//,writeCallback: (_,__) =>{this.InfoLog("Write counts are {0}", writeCount.Value+1);})
-                    .WithFlag(21,out tokenEn,name:"TokenEn")
+                    .WithTaggedFlag("TokenEn", 21)
                     .WithEnumField<DoubleWordRegister, DualQuad>(22, 2, out dualQuad, name: "DualQuad")
                     .WithEnumField<DoubleWordRegister, TransferMode>(24, 4, out transferMode, name: "TransMode")
                     .WithFlag(28,out addressformat, FieldMode.Read | FieldMode.Write,name:"AddrFmt")          
                     .WithFlag(29,out addressPhaseEnable, FieldMode.Read | FieldMode.Write, name: "AddrEn")
                     .WithFlag(30,out commandPhaseEnable, FieldMode.Read |FieldMode.Write, name: "CmdEn")
                     .WithTaggedFlag("SlvDataOnly", 31)
-                    .WithWriteCallback((_, __) => {
-                     var byteCount = (int)dataLength.Value / 8 + 1;
-                      bytestoTransfer = ((int)(writeCount.Value+1))* (byteCount);
-                       this.InfoLog(" in register bytes to Transfer are  {0}, write count{1},  byte count {2}", bytestoTransfer,writeCount.Value+1, byteCount);
-                       this.InfoLog ("readcounts are {0}", readCount.Value+1);
+                    .WithWriteCallback((_, __) => 
+                    {
+                        var byteCount = (int)dataLength.Value / 8 + 1;
+                        bytestoTransfer = ((int)(writeCount.Value+1))* (byteCount);
                         bytesfromslave = ((int)readCount.Value+1) *(byteCount);
-
-                      
                     })
                 },
 
                 {(long)Registers.Command, new DoubleWordRegister(this)
                     .WithValueField(0, 8,out command, FieldMode.Read |FieldMode.Write,name: "CMD",writeCallback: (_,__) => {transactionInProgress=true;})
                     .WithReservedBits(8, 24)
-                    .WithChangeCallback((_, __) => {
-                    TrySendData();})
+                    .WithChangeCallback((_, __) => TrySendData())
                     
                 },
 
@@ -124,11 +120,12 @@ namespace Antmicro.Renode.Peripherals.SPI
                             this.Log(LogLevel.Warning, "Trying to read from an empty FIFO");
                             return 0;
                         }
-                        if(readCount.Value+1<=fifoSize){
+                        if(readCount.Value+1<=fifoSize)
+                        {
                         --bytesfromslave;
                         }
 
-                        if((int)readCount.Value+1>(int)fifoSize && rxQueue.Count==0 || datareceive==true) //
+                        if((int)readCount.Value+1 >(int)fifoSize && rxQueue.Count==0 || datareceive==true) //
                         {  
                             bytesfromslave=bytesfromslave-(int)fifoSize;
                            for (var i=0; i<=bytesfromslave; i++){
@@ -193,17 +190,15 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithValueField(8, 6, name: "RXNUM")
                     .WithFlag(14,FieldMode.Read, name :"RXEMPTY",valueProviderCallback: (_) => rxQueue.Count==0)
                     .WithFlag(15,FieldMode.Read,name :"RXFULL",valueProviderCallback: (_) => 
-                     { if(rxQueue.Count == fifoSize)
+                    {   if(rxQueue.Count == fifoSize)
                         {
                             rxFull=true;
                         } 
                        return rxFull;
                     })
-
                     .WithValueField(16, 6, name: "TXNUM")
                     .WithFlag(22,FieldMode.Read, name:"TXEMPTY",valueProviderCallback: (_) => txQueue.Count == 0)
                     .WithFlag(23,FieldMode.Read,name:"TXFULL",valueProviderCallback: (_) =>
-                    
                     { if(txQueue.Count == fifoSize)
                         {
                             txFull=true;
@@ -251,7 +246,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             return true;
         }
 
-        private void EnqueueToTransmitBuffer(uint val)   //byte or ushort or uint
+        private void EnqueueToTransmitBuffer(uint val)
         {
             if(txQueue.Count == fifoSize)
             {
@@ -260,7 +255,6 @@ namespace Antmicro.Renode.Peripherals.SPI
             }
 
             txQueue.Enqueue(val);
-            this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val))); 
               //smaller transaction condition  and for larget transaction , SPIACtive and buffer is full and then transaction carried out
             if((uint)txQueue.Count == (uint)writeCount.Value+1 || (transactionInProgress && txQueue.Count == fifoSize) )
             {
@@ -281,45 +275,33 @@ namespace Antmicro.Renode.Peripherals.SPI
             if(commandPhaseEnable.Value)
             {
                 RegisteredPeripheral.Transmit((byte)command.Value);
-                this.InfoLog("Command is {0}  , and enable is {1}", command.Value, commandPhaseEnable.Value);
-
-           }
+            }
            
-           if(addressPhaseEnable.Value)
-           {
+            if(addressPhaseEnable.Value)
+            {
                 var a0 = (byte)(serialFlashAddress.Value);
                 var a1 = (byte)(serialFlashAddress.Value>>8);
                 var a2 = (byte)(serialFlashAddress.Value>>16);
                 RegisteredPeripheral.Transmit(a2);
                 RegisteredPeripheral.Transmit(a1);
                 RegisteredPeripheral.Transmit(a0);
+            }
 
-                this.InfoLog("addrress is {0} , {1} , {2}", a2, a1, a0);
-           }
-        if (readFromFifo){
+            if (readFromFifo)
+            {
           
-          this.InfoLog("read from fifo");
-        }
+                this.InfoLog("read from fifo");
+            }
 
         else if(writeToFifo)
         {
-          
-             
             for (var i=0; i<bytesfromslave; i++)
                 {
                     HandleByteReception();
                 }
-
-               // transactionInProgress = false;
-             // RegisteredPeripheral.FinishTransmission();
-                
-        this.InfoLog("write to fifo");
         }
 
-        
-         TryFinishTransmission();
-        
-                     
+            TryFinishTransmission();                    
         }
 
 
@@ -328,13 +310,11 @@ namespace Antmicro.Renode.Peripherals.SPI
 
                 case TransferMode.WriteRead:
                     PerformTransaction(txQueue.Count, readFromFifo: true, writeToFifo: true);
-                    this.InfoLog("Write Read");
                     break;
                 case TransferMode.Write:
                     if (command.Value == 0x02)
                     {
                     PerformTransaction(txQueue.Count,readFromFifo: true, writeToFifo: false);
-                    this.InfoLog("Write");
                     }
                      
                     if(command.Value==0xD8)
@@ -344,7 +324,6 @@ namespace Antmicro.Renode.Peripherals.SPI
                     break;
                 case TransferMode.Read: 
                     PerformTransaction(rxQueue.Count,readFromFifo: false, writeToFifo: true);
-                    this.InfoLog("Read"); 
                     break;
                 case TransferMode.WriteandRead:
                    break; 
@@ -355,8 +334,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 case TransferMode.ReadDummyWrite:
                    break;
                 case TransferMode.NoneData:
-                    PerformTransaction(txQueue.Count,readFromFifo: false, writeToFifo: false);
-                    this.InfoLog("No data mode");
+                    PerformTransaction(txQueue.Count,readFromFifo: false, writeToFifo: false);                       
                     break;
                 case TransferMode.DummyWrite:
                     break;
@@ -404,28 +382,20 @@ namespace Antmicro.Renode.Peripherals.SPI
         {    
            if(rxQueue.Count == fifoSize) 
            {
-            this.InfoLog("receive buffer full");
-            return;
+                return;
            }
             var receivedByte = RegisteredPeripheral.Transmit(0);
-            rxQueue.Enqueue(receivedByte);
-            
-            this.InfoLog("receive buffer count are {0}",rxQueue.Count); 
-            
+            rxQueue.Enqueue(receivedByte);       
         }
 
          private void TryFinishTransmission()
         {   
             if ( transferMode.Value == TransferMode.Write || transferMode.Value ==TransferMode.Read)
             {
-                 this.InfoLog("return from TryFinishtransmission");
                  return;
             }
             transactionInProgress = false;
             RegisteredPeripheral.FinishTransmission();
-            this.InfoLog("Transaction finish");
-            Reset();
-            
         }
 
        
@@ -442,10 +412,9 @@ namespace Antmicro.Renode.Peripherals.SPI
         private IFlagRegisterField commandPhaseEnable; 
         private IFlagRegisterField addressPhaseEnable;
         private IFlagRegisterField addressformat;
-        private IFlagRegisterField leastSignificantByteFirst;
+        private IFlagRegisterField leastSignificantBitFirst;
         private IFlagRegisterField dataMerge;
-        private IFlagRegisterField tokenEn;
-        private IFlagRegisterField tokenValue;
+    
         
 
 
