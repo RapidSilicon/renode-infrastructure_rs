@@ -85,7 +85,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithTaggedFlag("SlvDataOnly", 31)
                     .WithWriteCallback((_, __) => 
                     {
-                        var byteCount = (int)dataLength.Value / 8 + 1;
+                        byteCount = (int)dataLength.Value / 8 + 1;
                         bytestoTransfer = ((int)(writeCount.Value+1))* (byteCount);
                         bytesfromslave = ((int)readCount.Value+1) *(byteCount);
                     })
@@ -104,62 +104,40 @@ namespace Antmicro.Renode.Peripherals.SPI
                 
                 {(long)Registers.Data, new DoubleWordRegister(this)
                     .WithValueField(0, 32,FieldMode.Read |FieldMode.Write, name: "DATA",
-                        writeCallback: (_, val) => {
-                            EnqueueToTransmitBuffer((uint)val);      
-                           this.InfoLog("transmit values is {0}",BitConverter.ToString(BitConverter.GetBytes(val))); 
-                            this.InfoLog("transmit buffer count are {0}",txQueue.Count); 
-                            
-                           }
-                       
-                           ,
+                        writeCallback: (_, val) => EnqueueToTransmitBuffer((uint)val),
                        valueProviderCallback: _ =>
-                    {   
+                        {   
                        
                        if(!TryDequeueFromReceiveBuffer(out var data))
                         {
                             this.Log(LogLevel.Warning, "Trying to read from an empty FIFO");
                             return 0;
                         }
-                        if(readCount.Value+1<=fifoSize)
+                        if(readCount.Value+1 <= fifoSize)
                         {
                         --bytesfromslave;
                         }
 
-                        if((int)readCount.Value+1 >(int)fifoSize && rxQueue.Count==0 || datareceive==true) //
+                        if(readCount.Value+1 > fifoSize && rxQueue.Count==0)
                         {  
                             bytesfromslave=bytesfromslave-(int)fifoSize;
-                           for (var i=0; i<=bytesfromslave; i++){
+                           for (var i=0; i<=bytesfromslave; i++)
+                           {
                             HandleByteReception();
                            }
-                            
-                         
-                          this.InfoLog("larger transaction bytesfromslave{0}", bytesfromslave);
+    
                         }
-                        this.InfoLog("receive values are {0}",BitConverter.ToString(BitConverter.GetBytes(data))); 
                         
                       if ( bytesfromslave==0 )
                         {
                             transactionInProgress = false;
                             RegisteredPeripheral.FinishTransmission();
-                            rxFull=false;
                             this.InfoLog("Transmission finish after read");
-                            
-                           // Reset();
+                            rxFull=false;
                             return data;
-
-                         } 
-                         if (rxQueue.Count==0)
-                         {
-                            datareceive=true;
-                         }
-                         else {
-                            datareceive=false;
-                         }
-                         
-                        return data;  
-
-                           
-                    })
+                        } 
+                        return data;             
+                        })
 
                     
                 },     
@@ -255,8 +233,8 @@ namespace Antmicro.Renode.Peripherals.SPI
             }
 
             txQueue.Enqueue(val);
-              //smaller transaction condition  and for larget transaction , SPIACtive and buffer is full and then transaction carried out
-            if((uint)txQueue.Count == (uint)writeCount.Value+1 || (transactionInProgress && txQueue.Count == fifoSize) )
+              //smaller transaction condition  and for larget transaction , SPIActive and buffer is full and then transaction carried out
+            if(txQueue.Count == (int)writeCount.Value+1 || (transactionInProgress && txQueue.Count == fifoSize) )
             {
                 HandleByteTransmission();
             }
@@ -264,7 +242,6 @@ namespace Antmicro.Renode.Peripherals.SPI
         
         private void PerformTransaction(int size,bool readFromFifo,bool writeToFifo)
         {  
-            var byteCount = (int)dataLength.Value / 8 + 1;
        
             if(RegisteredPeripheral == null)
             {
@@ -299,6 +276,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 {
                     HandleByteReception();
                 }
+             this.InfoLog("read");
         }
 
             TryFinishTransmission();                    
@@ -346,26 +324,23 @@ namespace Antmicro.Renode.Peripherals.SPI
 
         }
 
-        private void HandleByteTransmission(){
+        private void HandleByteTransmission()
+        {
 
-            var byteCount = (int)dataLength.Value / 8 + 1;
             var bytes = new byte[MaxPacketBytes];
             var reverseBytes = BitConverter.IsLittleEndian; 
 
-          bytestoTransfer = bytestoTransfer - (int)txQueue.Count;
-            this.InfoLog("bytes to Transfer are  {0}, queue count{1}, write count{2}", bytestoTransfer,txQueue.Count,writeCount.Value+1);
+            bytestoTransfer = bytestoTransfer - (int)txQueue.Count;
+
             while(txQueue.Count!=0)
-          {
+            {
             var value = txQueue.Dequeue();
             BitHelper.GetBytesFromValue(bytes, 0, value, byteCount, reverseBytes);
             for(var i = 0; i < byteCount; i++)
                 {   
-                    
                     bytes[i] = RegisteredPeripheral.Transmit(bytes[i]);
-                    this.InfoLog("values in transmit loop {0}", bytes[i]);
                 }
-           // rxQueue.Enqueue(BitHelper.ToUInt32(bytes, 0, byteCount, reverseBytes));
-          }
+            }
           txQueue.Clear();
 
           if(bytestoTransfer!=0){
@@ -373,9 +348,7 @@ namespace Antmicro.Renode.Peripherals.SPI
           }
           transactionInProgress=false;
           RegisteredPeripheral.FinishTransmission();
-          Reset();
-
-
+          this.InfoLog("Transmission finish after write");
         }
         
         private void HandleByteReception()
@@ -414,34 +387,26 @@ namespace Antmicro.Renode.Peripherals.SPI
         private IFlagRegisterField addressformat;
         private IFlagRegisterField leastSignificantBitFirst;
         private IFlagRegisterField dataMerge;
-    
-        
-
 
         private IEnumRegisterField<AddressLength> addressLength;
         private IEnumRegisterField<TransferMode> transferMode;
-         private IEnumRegisterField<DualQuad> dualQuad;
+        private IEnumRegisterField<DualQuad> dualQuad;
 
 
         private readonly uint fifoSize;   
-        private uint sizeLeft;  
-        private const int FIFODataWidth = 0x04;
-        private const int FIFOLength = 32;
-        private const int MaximumNumberOfSlaves = 4;
         private const int MaxPacketBytes = 4;
         private bool transactionInProgress;
         private bool txFull = false;
         private bool rxFull ;
-        private bool rxEmpty;
         private int bytestoTransfer;
         private int bytesfromslave;
+
+        public int byteCount;
         
-        public bool datareceive;
 
         private readonly Queue<uint> rxQueue;  
         private readonly Queue<uint> txQueue;  
         private readonly DoubleWordRegisterCollection registers;
-        private readonly object innerLock = new object();
 
         private enum AddressLength
         { 
@@ -467,10 +432,10 @@ namespace Antmicro.Renode.Peripherals.SPI
       
        private enum DualQuad
        {
-        Regular = 0,
-        Dual = 1,
-        Quad = 2,
-        Reserved = 3
+            Regular = 0,
+            Dual = 1,
+            Quad = 2,
+            Reserved = 3
        }
 
         private enum Registers : long
@@ -494,15 +459,3 @@ namespace Antmicro.Renode.Peripherals.SPI
         }
     }
 }
-
-                       
- 
-/*(Virgo) spi.Flash1 Transmit 0x06
-0x00
-(Virgo) spi.Flash1 FinishTransmission
-(Virgo) sysbus.spi WriteDoubleWord 0x28 0x000000
-(Virgo) sysbus.spi WriteDoubleWord 0x20 0x60000000
-(Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
-(Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
-(Virgo) sysbus.spi WriteDoubleWord 0x2C 0x12
-(Virgo) sysbus.spi WriteDoubleWord 0x24 0x02*/
