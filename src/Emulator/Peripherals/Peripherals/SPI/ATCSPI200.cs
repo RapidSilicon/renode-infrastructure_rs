@@ -124,8 +124,21 @@ namespace Antmicro.Renode.Peripherals.SPI
                             this.Log(LogLevel.Warning, "Trying to read from an empty FIFO");
                             return 0;
                         }
+                        if(readCount.Value+1<=fifoSize){
                         --bytesfromslave;
-                      //  this.InfoLog("receive values are {0}",BitConverter.ToString(BitConverter.GetBytes(data))); 
+                        }
+
+                        if((int)readCount.Value+1>(int)fifoSize && rxQueue.Count==0 || datareceive==true) //
+                        {  
+                            bytesfromslave=bytesfromslave-(int)fifoSize;
+                           for (var i=0; i<=bytesfromslave; i++){
+                            HandleByteReception();
+                           }
+                            
+                         
+                          this.InfoLog("larger transaction bytesfromslave{0}", bytesfromslave);
+                        }
+                        this.InfoLog("receive values are {0}",BitConverter.ToString(BitConverter.GetBytes(data))); 
                         
                       if ( bytesfromslave==0 )
                         {
@@ -134,12 +147,18 @@ namespace Antmicro.Renode.Peripherals.SPI
                             rxFull=false;
                             this.InfoLog("Transmission finish after read");
                             
-                            Reset();
-                            return 0;
+                           // Reset();
+                            return data;
 
                          } 
-                      
-
+                         if (rxQueue.Count==0)
+                         {
+                            datareceive=true;
+                         }
+                         else {
+                            datareceive=false;
+                         }
+                         
                         return data;  
 
                            
@@ -383,7 +402,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         
         private void HandleByteReception()
         {    
-           if(rxQueue.Count== fifoSize)
+           if(rxQueue.Count == fifoSize) 
            {
             this.InfoLog("receive buffer full");
             return;
@@ -447,7 +466,8 @@ namespace Antmicro.Renode.Peripherals.SPI
         private bool rxEmpty;
         private int bytestoTransfer;
         private int bytesfromslave;
-
+        
+        public bool datareceive;
 
         private readonly Queue<uint> rxQueue;  
         private readonly Queue<uint> txQueue;  
