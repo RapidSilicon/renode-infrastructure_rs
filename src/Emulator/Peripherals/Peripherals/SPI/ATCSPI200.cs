@@ -94,8 +94,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                 {(long)Registers.Command, new DoubleWordRegister(this)
                     .WithValueField(0, 8,out command, FieldMode.Read |FieldMode.Write,name: "CMD",writeCallback: (_,__) => {transactionInProgress=true;})
                     .WithReservedBits(8, 24)
-                    .WithChangeCallback((_, __) => TrySendData())
-                    
+                    .WithChangeCallback((_, __) => TrySendData())   
                 },
 
                 {(long)Registers.Address, new DoubleWordRegister(this)
@@ -137,9 +136,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                             return data;
                         } 
                         return data;             
-                        })
-
-                    
+                        })    
                 },     
                 {(long)Registers.Control, new DoubleWordRegister(this)
                     .WithFlag(0, name: "SPIRST",
@@ -204,17 +201,15 @@ namespace Antmicro.Renode.Peripherals.SPI
                     .WithTaggedFlag("AHBMem", 12)
                     .WithTaggedFlag("EILMMem", 13)
                     .WithTaggedFlag("SLAVE", 14)
-                    .WithReservedBits(15, 17)   
-                    
+                    .WithReservedBits(15, 17)       
                 }
-
             };
 
             return registerMap;
         }
 
         
-         public bool TryDequeueFromReceiveBuffer(out uint data)
+        public bool TryDequeueFromReceiveBuffer(out uint data)
         {
             if(!rxQueue.TryDequeue(out data))
             {

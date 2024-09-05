@@ -114,8 +114,7 @@ namespace Antmicro.Renode.Peripherals.SPI
 
         public byte Transmit(byte data)
         {
-           // this.Log(LogLevel.Noisy, "Transmitting data 0x{0:X}, current state: {1}", data, currentOperation.State);
-           this.InfoLog("Transmitting data 0x{0:X}, current state: {1}", data, currentOperation.State);
+            this.Log(LogLevel.Noisy, "Transmitting data 0x{0:X}, current state: {1}", data, currentOperation.State);
             switch(currentOperation.State)
             {
                 case DecodedOperation.OperationState.RecognizeOperation:
@@ -196,8 +195,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         {
             if(currentOperation.TryAccumulateAddress(addressByte))
             {
-                //this.Log(LogLevel.Noisy, "Address accumulated: 0x{0:X}", currentOperation.ExecutionAddress);
-                this.InfoLog ("Address accumulated: 0x{0:X}", currentOperation.ExecutionAddress);
+                this.Log(LogLevel.Noisy, "Address accumulated: 0x{0:X}", currentOperation.ExecutionAddress);
                 currentOperation.State = nextState;
             }
         }
@@ -273,7 +271,6 @@ namespace Antmicro.Renode.Peripherals.SPI
                     currentOperation.Operation = DecodedOperation.OperationType.Program;
                     currentOperation.AddressLength = NumberOfAddressBytes;
                     currentOperation.State = DecodedOperation.OperationState.AccumulateCommandAddressBytes;
-                    this.InfoLog("Page Program");
                     break;
                 case (byte)Commands.PageProgram4byte:
                 case (byte)Commands.QuadInputFastProgram4byte:
@@ -282,8 +279,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     currentOperation.State = DecodedOperation.OperationState.AccumulateCommandAddressBytes;
                     break;
                 case (byte)Commands.WriteEnable:
-                    //this.Log(LogLevel.Noisy, "Setting write enable latch");
-                    this.InfoLog("Setting write enable latch");
+                    this.Log(LogLevel.Noisy, "Setting write enable latch");
                     enable.Value = true;
                     return; //return to prevent further logging
                 case (byte)Commands.WriteDisable:
@@ -316,8 +312,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     break;
                 case (byte)Commands.BulkErase:
                 case (byte)Commands.ChipErase:
-                   // this.Log(LogLevel.Noisy, "Performing bulk/chip erase");
-                    this.InfoLog("Performing bulk/chip erase");
+                    this.Log(LogLevel.Noisy, "Performing bulk/chip erase");
                     EraseChip();
                     break;
                 case (byte)Commands.SubsectorErase4byte4kb:
@@ -433,7 +428,6 @@ namespace Antmicro.Renode.Peripherals.SPI
                     {
                         WriteToMemory(data);
                         result = data;
-                        this.InfoLog("Write data to flash");
                     }
                     else
                     {
@@ -451,8 +445,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                     break;
             }
             currentOperation.CommandBytesHandled++;
-           // this.Log(LogLevel.Noisy, "Handled command: {0}, returning 0x{1:X}", currentOperation, result);
-            this.InfoLog("Handled command: {0}, returning 0x{1:X}", currentOperation, result);
+            this.Log(LogLevel.Noisy, "Handled command: {0}, returning 0x{1:X}", currentOperation, result);
             return result;
         }
 
@@ -598,7 +591,6 @@ namespace Antmicro.Renode.Peripherals.SPI
                 this.Log(LogLevel.Error, "Chip erase can only be performed when there is no locked range");
                 return;
             }
-            this.InfoLog("Chip Erase Function");
             underlyingMemory.ZeroAll();
         }
 

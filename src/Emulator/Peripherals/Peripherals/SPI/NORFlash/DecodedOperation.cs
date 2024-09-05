@@ -48,7 +48,6 @@ namespace Antmicro.Renode.Peripherals.SPI.NORFlash
             if(currentAddressByte == AddressLength)
             {
                 ExecutionAddress = BitHelper.ToUInt32(AddressBytes, 0, AddressLength, false);
-                Logger.Log(LogLevel.Info,"try accumulate address {0} , {1}", currentAddressByte, AddressLength);
                 return true;
             }
             return false;
