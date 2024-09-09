@@ -121,11 +121,7 @@ namespace Antmicro.Renode.Peripherals.SPI
                             if(readCount.Value+1 > fifoSize && rxQueue.Count==0)
                             {  
                                 bytesfromslave=bytesfromslave-(int)fifoSize;
-                                for (var i=0; i<=bytesfromslave; i++)
-                                {
-                                    HandleByteReception();
-                                }
-    
+                                HandleByteReception();
                             }
                         
                             if ( bytesfromslave==0 )
@@ -267,10 +263,7 @@ namespace Antmicro.Renode.Peripherals.SPI
 
             else if(writeToFifo)
             {
-                for (var i=0; i<bytesfromslave; i++)
-                {
-                    HandleByteReception();
-                }
+                HandleByteReception();
                 this.InfoLog("Reading data from device");
             }
             EndTransfer();                    
@@ -335,13 +328,15 @@ namespace Antmicro.Renode.Peripherals.SPI
         }
         
         private void HandleByteReception()
-        {    
-           if(rxQueue.Count == fifoSize) 
-           {
-                return;
-           }
+        {  for (var i=0; i<bytesfromslave; i++)
+            {  
+                if(rxQueue.Count == fifoSize) 
+                {
+                    return;
+                }
             var receivedByte = RegisteredPeripheral.Transmit(0);
-            rxQueue.Enqueue(receivedByte);       
+            rxQueue.Enqueue(receivedByte); 
+            }      
         }
 
         private void EndTransfer()
