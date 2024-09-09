@@ -244,6 +244,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             if(commandPhaseEnable.Value)
             {
                 RegisteredPeripheral.Transmit((byte)command.Value);
+                this.InfoLog("Sending command 0x{0:X}", command.Value);
             }
            
             if(addressPhaseEnable.Value)
