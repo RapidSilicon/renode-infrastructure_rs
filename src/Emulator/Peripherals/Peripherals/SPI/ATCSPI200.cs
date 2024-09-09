@@ -19,7 +19,7 @@ using System.Collections.Specialized;
 
 namespace Antmicro.Renode.Peripherals.SPI
 {
-    public class ATCSPI200 : NullRegistrationPointPeripheralContainer<ISPIPeripheral>, IDoubleWordPeripheral, IKnownSize /*IWordPeripheral, IBytePeripheral ,NullRegistrationPointPeripheralContainer<ISPIFlash>*/
+    public class ATCSPI200 : NullRegistrationPointPeripheralContainer<ISPIPeripheral>, IDoubleWordPeripheral, IKnownSize
     {
         public ATCSPI200(IMachine machine, uint fifoSize, bool hushTxFifoLevelWarnings = false) : base(machine)
         {
@@ -130,11 +130,8 @@ namespace Antmicro.Renode.Peripherals.SPI
                         
                             if ( bytesfromslave==0 )
                             {
-                                transactionInProgress = false;
-                                RegisteredPeripheral.FinishTransmission();
-                                this.InfoLog("Transmission finish after read");
                                 rxFull=false;
-                                Reset();
+                                TryFinishTransmission();
                                 return data;
                             } 
                             return data;             
@@ -263,10 +260,9 @@ namespace Antmicro.Renode.Peripherals.SPI
                 RegisteredPeripheral.Transmit(a0);
             }
 
-            if (readFromFifo)
+            if(readFromFifo)
             {
-          
-                this.InfoLog("write");
+                this.InfoLog("Doing an SPI transfer of size {0} bytes", writeCount.Value+1);              
             }
 
             else if(writeToFifo)
@@ -275,29 +271,21 @@ namespace Antmicro.Renode.Peripherals.SPI
                 {
                     HandleByteReception();
                 }
-            this.InfoLog("read");
+                this.InfoLog("Reading data from device");
             }
-
-            TryFinishTransmission();                    
+            EndTransfer();                    
         }
 
 
-         private void TrySendData(){
+         private void TrySendData()
+         {
             switch(transferMode.Value)
             {
                 case TransferMode.WriteRead:
                     PerformTransaction(txQueue.Count, readFromFifo: true, writeToFifo: true);
                     break;
                 case TransferMode.Write:
-                    if (command.Value == 0x02)
-                    {
                     PerformTransaction(txQueue.Count,readFromFifo: true, writeToFifo: false);
-                    }
-                     
-                    if(command.Value==0xD8 || command.Value==0xC7)
-                    {
-                    this.InfoLog("Erase");
-                    }
                     break;
                 case TransferMode.Read: 
                     PerformTransaction(rxQueue.Count,readFromFifo: false, writeToFifo: true);
@@ -328,7 +316,6 @@ namespace Antmicro.Renode.Peripherals.SPI
             var bytes = new byte[MaxPacketBytes];
             var reverseBytes = BitConverter.IsLittleEndian; 
             bytestoTransfer = bytestoTransfer - (int)txQueue.Count;
-
             while(txQueue.Count!=0)
             {
                 var value = txQueue.Dequeue();
@@ -344,10 +331,7 @@ namespace Antmicro.Renode.Peripherals.SPI
             {
             return;
             }
-            transactionInProgress=false;
-            RegisteredPeripheral.FinishTransmission();
-            this.InfoLog("Transmission finish after write");
-            Reset();
+            TryFinishTransmission();
         }
         
         private void HandleByteReception()
@@ -360,17 +344,22 @@ namespace Antmicro.Renode.Peripherals.SPI
             rxQueue.Enqueue(receivedByte);       
         }
 
-        private void TryFinishTransmission()
+        private void EndTransfer()
         {   
             if(transferMode.Value == TransferMode.Write || transferMode.Value == TransferMode.Read)
             {
                 return;
             }
+            TryFinishTransmission();  
+        }
+        
+        private void TryFinishTransmission()
+        {
             transactionInProgress = false;
             RegisteredPeripheral.FinishTransmission();
+            this.InfoLog("Finish Transaction"); 
             Reset();
         }
-
        
         private IValueRegisterField dataLength;  
         private IValueRegisterField command; 
