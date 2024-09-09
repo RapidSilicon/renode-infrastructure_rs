@@ -18,9 +18,9 @@ namespace Antmicro.Renode.Peripherals.SPI
             // original MT25Q supports capacity 8MB to 256MB,
             // but we extended it down to 64KB
             // to become compatible with N25Q line
-            if(underlyingMemory.Size < 64.KB() || underlyingMemory.Size > 256.MB())
+            if(underlyingMemory.Size < 64.KB() || underlyingMemory.Size > 32.MB())
             {
-                throw new ConstructionException("Size of the underlying memory must be in range 64KB - 256MB");
+                throw new ConstructionException("Size of the underlying memory must be in range 64KB - 32MB");
             }
         }
 

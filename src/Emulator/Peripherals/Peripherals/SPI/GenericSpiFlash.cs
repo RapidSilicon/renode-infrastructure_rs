@@ -682,7 +682,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         private const byte DefaultRemainingIDBytes = 0x10;
         private const byte DefaultExtendedDeviceID = DeviceGeneration << 6;
         private const byte DefaultDeviceConfiguration = 0x0;   // standard
-        private const int DefaultSectorSizeKB = 64;
+        private const int DefaultSectorSizeKB = 512;
 
         // Dummy SFDP header: 0 parameter tables, one empty required
         private readonly byte[] DefaultSFDPSignature = new byte[]
